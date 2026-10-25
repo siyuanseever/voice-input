@@ -1,6 +1,9 @@
 """用虚构数据渲染面板截图 docs/panel.png（不含任何真实转写）。
-用法：python3 docs/demo/make_panel_png.py   需要 Google Chrome。"""
-import json, os, random, subprocess, tempfile, datetime
+用法：python3 docs/demo/make_panel_png.py [--lang en]   需要 Google Chrome。
+--lang en 渲染英文界面（国际站、美元计价），输出 docs/panel.en.png，给英文 README 用。"""
+import json, os, random, subprocess, sys, tempfile, datetime
+
+EN = "--lang" in sys.argv and sys.argv[sys.argv.index("--lang") + 1] == "en"
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 random.seed(7)
@@ -17,14 +20,18 @@ for i in range(13, -1, -1):
             c = round(n * p * random.uniform(0.6, 1.4))
             if c: bm[m] = {"count": c, "chars": c * 60, "secs": c * 17}
     cnt = sum(v["count"] for v in bm.values())
-    cost = round(bm.get("qwen3-asr-flash", {"secs": 0})["secs"] * 0.00022 * 1.06, 4)
+    cost = round(bm.get("qwen3-asr-flash", {"secs": 0})["secs"] * (0.000035 if EN else 0.00022) * 1.06, 5)
     total_cost += cost
     days.append({"date": d, "count": cnt, "chars": sum(v["chars"] for v in bm.values()),
                  "secs": sum(v["secs"] for v in bm.values()), "byModel": bm, "cost": cost})
 t = days[-1]
 models = [{"name": m, "calls": t["byModel"].get(m, {}).get("count", 0), "todayOk": t["byModel"].get(m, {}).get("count", 0),
            "limited": 0, "failed": 0, "cost": t["cost"] if m.startswith("qwen") else 0, "paid": m.startswith("qwen")} for m in MODELS]
-data = {"items": [], "settings": {"models": MODELS, "knownModels": [], "devices": ["MacBook Pro 麦克风"], "mic": "", "keep": 10, "vocab": "", "trigger": "右 Command"},
+settings = {"models": MODELS, "knownModels": [], "devices": ["MacBook Pro 麦克风"], "mic": "", "keep": 10, "vocab": "", "trigger": "右 Command",
+            "lang": "zh", "currency": "¥", "region": "cn"}
+if EN:
+    settings.update(devices=["MacBook Pro Microphone"], trigger="Right Command", lang="en", currency="$", region="intl")
+data = {"items": [], "settings": settings,
         "stats": {"days": days, "total": {"count": sum(d["count"] for d in days), "chars": sum(d["chars"] for d in days),
                                           "secs": sum(d["secs"] for d in days)},
                   "estimated": False, "models": models,
@@ -45,8 +52,8 @@ os.makedirs(PROFILE, exist_ok=True)
 subprocess.run(["pkill", "-f", "--", f"--user-data-dir={PROFILE}"], capture_output=True)
 page = os.path.join(tempfile.mkdtemp(), "panel.html")
 open(page, "w", encoding="utf-8").write(html.replace("</body>", inject, 1))
-out = os.path.join(ROOT, "docs/panel.png")
-if "--dom" in __import__("sys").argv:  # 排查用：打印渲染后的 DOM（出错时 <title> 里是报错）
+out = os.path.join(ROOT, "docs/panel.en.png" if EN else "docs/panel.png")
+if "--dom" in sys.argv:  # 排查用：打印渲染后的 DOM（出错时 <title> 里是报错）
     subprocess.run(["/Applications/Google Chrome.app/Contents/MacOS/Google Chrome", "--headless=new", "--disable-gpu", f"--user-data-dir={PROFILE}",
                     "--virtual-time-budget=2000", "--dump-dom", "file://" + page], stderr=subprocess.DEVNULL)
     raise SystemExit
