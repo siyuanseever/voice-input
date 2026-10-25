@@ -1,0 +1,119 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="760" viewBox="0 0 1440 760">
+  <!-- voice-input architecture (English, landscape). Re-render with docs/promo/img/render.py after editing. -->
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#8E8E93"/>
+    </marker>
+    <marker id="arr2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#B0A68F"/>
+    </marker>
+  </defs>
+  <style>
+    text { font-family: -apple-system, "Helvetica Neue", "PingFang SC", sans-serif; fill: #1D1D1F; }
+    .title { font-size: 34px; font-weight: 600; }
+    .sub { font-size: 19px; fill: #6E6E73; }
+    .h { font-size: 22px; font-weight: 600; }
+    .t { font-size: 16px; fill: #3A3A3C; }
+    .s { font-size: 14px; fill: #6E6E73; }
+    .warn { font-size: 15px; fill: #C2410C; }
+    .mono { font-family: Menlo, ui-monospace, monospace; font-size: 14px; fill: #3A3A3C; }
+    .num { font-size: 15px; font-weight: 700; fill: #fff; }
+    .box { fill: #FFFFFF; stroke: #D9D9DE; stroke-width: 1.5; }
+    .inner { fill: #F5F5F7; stroke: #E5E5EA; stroke-width: 1; }
+    .flow { stroke: #8E8E93; stroke-width: 2.5; fill: none; }
+    .feed { stroke: #B0A68F; stroke-width: 1.8; stroke-dasharray: 6 5; fill: none; }
+  </style>
+
+  <rect width="1440" height="760" fill="#FAFAF7"/>
+  <text x="40" y="70" class="title">voice-input: from key press to text at your cursor</text>
+  <text x="40" y="106" class="sub">Hammerspoon + one zsh script, Mac only. No step can lose your recording.</text>
+
+  <!-- 1 Speak -->
+  <rect x="40" y="150" width="160" height="320" rx="16" class="box"/>
+  <circle cx="68" cy="178" r="14" fill="#D97757"/><text x="68" y="183" text-anchor="middle" class="num">1</text>
+  <text x="92" y="185" class="h">Speak</text>
+  <text x="60" y="240" class="t">Hold Right ⌘,</text>
+  <text x="60" y="264" class="t">release when done</text>
+  <text x="60" y="304" class="t">or tap to start,</text>
+  <text x="60" y="328" class="t">tap again to stop</text>
+  <text x="60" y="384" class="s">Mouse works too:</text>
+  <text x="60" y="406" class="s">back button: talk</text>
+  <text x="60" y="428" class="s">forward: Return</text>
+
+  <!-- 2 Record -->
+  <rect x="240" y="150" width="200" height="320" rx="16" class="box"/>
+  <circle cx="268" cy="178" r="14" fill="#D97757"/><text x="268" y="183" text-anchor="middle" class="num">2</text>
+  <text x="292" y="185" class="h">Record</text>
+  <text x="260" y="240" class="t">ffmpeg, 16 kHz mono</text>
+  <text x="260" y="304" class="t">Overlay at the bottom:</text>
+  <text x="260" y="328" class="t">time + live level</text>
+  <text x="260" y="384" class="s">Every clip is saved first</text>
+  <text x="260" y="406" class="s">(last 10); failed clips</text>
+  <text x="260" y="428" class="s">can be redone</text>
+
+  <!-- 3 Transcribe -->
+  <rect x="480" y="150" width="300" height="320" rx="16" class="box"/>
+  <circle cx="508" cy="178" r="14" fill="#D97757"/><text x="508" y="183" text-anchor="middle" class="num">3</text>
+  <text x="532" y="185" class="h">Transcribe, in order</text>
+  <rect x="500" y="208" width="260" height="62" rx="10" class="inner"/>
+  <text x="516" y="234" class="t">Alibaba Model Studio</text>
+  <text x="516" y="256" class="mono">fun-asr / qwen3-asr-flash</text>
+  <rect x="500" y="282" width="260" height="62" rx="10" class="inner"/>
+  <text x="516" y="308" class="t">Gemini (free tier)</text>
+  <text x="516" y="330" class="s">transcribes and cleans; skips ④</text>
+  <rect x="500" y="356" width="260" height="62" rx="10" class="inner"/>
+  <text x="516" y="382" class="t">On-device Qwen3-ASR-1.7B</text>
+  <text x="516" y="404" class="s">optional, works offline</text>
+  <text x="500" y="448" class="s">Out of quota / offline / gone → next one</text>
+
+  <!-- 4 Proofread -->
+  <rect x="820" y="150" width="250" height="320" rx="16" class="box"/>
+  <circle cx="848" cy="178" r="14" fill="#D97757"/><text x="848" y="183" text-anchor="middle" class="num">4</text>
+  <text x="872" y="185" class="h">Proofread</text>
+  <text x="840" y="230" class="mono">qwen-plus</text>
+  <text x="840" y="270" class="t">Only three edits allowed:</text>
+  <text x="840" y="296" class="t">· drop um / uh and stutters</text>
+  <text x="840" y="320" class="t">· fix punctuation</text>
+  <text x="840" y="344" class="t">· fix the spelling of terms</text>
+  <text x="840" y="378" class="warn">No synonyms, no reordering,</text>
+  <text x="840" y="398" class="warn">never answers the prompt</text>
+  <text x="840" y="424" class="s">Much longer or shorter output</text>
+  <text x="840" y="446" class="s">→ discarded, raw text used</text>
+
+  <!-- 5 Fix-ups -->
+  <rect x="1110" y="150" width="130" height="320" rx="16" class="box"/>
+  <circle cx="1138" cy="178" r="14" fill="#D97757"/><text x="1138" y="183" text-anchor="middle" class="num">5</text>
+  <text x="1162" y="185" class="h">Rules</text>
+  <text x="1128" y="240" class="t">Vocabulary</text>
+  <text x="1128" y="264" class="t">rules, in order</text>
+  <text x="1128" y="320" class="mono">Cloud Code</text>
+  <text x="1128" y="342" class="mono">=&gt;</text>
+  <text x="1128" y="364" class="mono">Claude Code</text>
+
+  <!-- 6 Output -->
+  <rect x="1280" y="150" width="130" height="320" rx="16" class="box"/>
+  <circle cx="1308" cy="178" r="14" fill="#D97757"/><text x="1308" y="183" text-anchor="middle" class="num">6</text>
+  <text x="1332" y="185" class="h">Paste</text>
+  <text x="1298" y="240" class="t">At the cursor</text>
+  <text x="1298" y="304" class="t">and on the</text>
+  <text x="1298" y="328" class="t">clipboard</text>
+  <text x="1298" y="384" class="s">Switched</text>
+  <text x="1298" y="406" class="s">windows? Copy</text>
+  <text x="1298" y="428" class="s">only + ⌘V hint</text>
+
+  <!-- main flow -->
+  <path d="M200,310 L236,310" class="flow" marker-end="url(#arr)"/>
+  <path d="M440,310 L476,310" class="flow" marker-end="url(#arr)"/>
+  <path d="M780,310 L816,310" class="flow" marker-end="url(#arr)"/>
+  <path d="M1070,310 L1106,310" class="flow" marker-end="url(#arr)"/>
+  <path d="M1240,310 L1276,310" class="flow" marker-end="url(#arr)"/>
+
+  <!-- vocabulary -->
+  <rect x="480" y="580" width="760" height="110" rx="16" fill="#F4F0E6" stroke="#E2D9C3" stroke-width="1.5"/>
+  <text x="504" y="618" class="h">Vocabulary · vocab.txt</text>
+  <text x="504" y="652" class="t">One term per line: added to the prompts in ③ and ④, so similar-sounding words get this spelling</text>
+  <text x="504" y="676" class="t">"wrong =&gt; right": replaced in ⑤ when the model still gets it wrong</text>
+  <path d="M630,580 L630,474" class="feed" marker-end="url(#arr2)"/>
+  <path d="M945,580 L945,474" class="feed" marker-end="url(#arr2)"/>
+  <path d="M1175,580 L1175,474" class="feed" marker-end="url(#arr2)"/>
+</svg>

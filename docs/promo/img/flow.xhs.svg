@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1440" viewBox="0 0 1080 1440">
+  <!-- 小红书竖版（3:4）框架图。改完运行 docs/promo/img/render.py 重新生成 PNG。 -->
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#B8B8BE"/>
+    </marker>
+  </defs>
+  <style>
+    text { font-family: "PingFang SC", -apple-system, sans-serif; fill: #1D1D1F; }
+    .title { font-size: 56px; font-weight: 700; }
+    .sub { font-size: 30px; fill: #6E6E73; }
+    .h { font-size: 38px; font-weight: 600; }
+    .t { font-size: 28px; fill: #3A3A3C; }
+    .warn { font-size: 28px; fill: #C2410C; }
+    .num { font-size: 26px; font-weight: 700; fill: #fff; }
+    .foot { font-size: 26px; fill: #6E6E73; }
+    .box { fill: #FFFFFF; stroke: #DEDEE3; stroke-width: 2; }
+  </style>
+
+  <rect width="1080" height="1440" fill="#FAFAF7"/>
+  <text x="60" y="110" class="title">我的语音输入是怎么工作的</text>
+  <text x="60" y="160" class="sub">从按下键到文字出现在光标处，一共 6 步</text>
+
+  <!-- 每步：框 y、编号、标题、两行说明 -->
+  <rect x="60" y="200" width="960" height="150" rx="24" class="box"/>
+  <circle cx="112" cy="252" r="24" fill="#D97757"/><text x="112" y="261" text-anchor="middle" class="num">1</text>
+  <text x="156" y="265" class="h">说话</text>
+  <text x="156" y="312" class="t">按住右 Command 说，松开结束；鼠标侧键也行</text>
+
+  <rect x="60" y="384" width="960" height="150" rx="24" class="box"/>
+  <circle cx="112" cy="436" r="24" fill="#D97757"/><text x="112" y="445" text-anchor="middle" class="num">2</text>
+  <text x="156" y="449" class="h">录音</text>
+  <text x="156" y="496" class="t">底部小浮窗显示时长和音量；每段先存盘，失败能重来</text>
+
+  <rect x="60" y="568" width="960" height="150" rx="24" class="box"/>
+  <circle cx="112" cy="620" r="24" fill="#D97757"/><text x="112" y="629" text-anchor="middle" class="num">3</text>
+  <text x="156" y="633" class="h">听写</text>
+  <text x="156" y="680" class="t">阿里云 → Gemini → 本机模型，按顺序试，挂了自动换</text>
+
+  <rect x="60" y="752" width="960" height="150" rx="24" class="box"/>
+  <circle cx="112" cy="804" r="24" fill="#D97757"/><text x="112" y="813" text-anchor="middle" class="num">4</text>
+  <text x="156" y="817" class="h">校对</text>
+  <text x="156" y="864" class="warn">只许删"嗯啊"、改标点、改英文写法，不改原话</text>
+
+  <rect x="60" y="936" width="960" height="150" rx="24" class="box"/>
+  <circle cx="112" cy="988" r="24" fill="#D97757"/><text x="112" y="997" text-anchor="middle" class="num">5</text>
+  <text x="156" y="1001" class="h">兜底</text>
+  <text x="156" y="1048" class="t">按常用词表替换：Cloud Code → Claude Code</text>
+
+  <rect x="60" y="1120" width="960" height="150" rx="24" class="box"/>
+  <circle cx="112" cy="1172" r="24" fill="#D97757"/><text x="112" y="1181" text-anchor="middle" class="num">6</text>
+  <text x="156" y="1185" class="h">出字</text>
+  <text x="156" y="1232" class="t">直接出现在光标处，同时放进剪贴板</text>
+
+  <path d="M540,352 L540,380" stroke="#B8B8BE" stroke-width="3" marker-end="url(#arr)"/>
+  <path d="M540,536 L540,564" stroke="#B8B8BE" stroke-width="3" marker-end="url(#arr)"/>
+  <path d="M540,720 L540,748" stroke="#B8B8BE" stroke-width="3" marker-end="url(#arr)"/>
+  <path d="M540,904 L540,932" stroke="#B8B8BE" stroke-width="3" marker-end="url(#arr)"/>
+  <path d="M540,1088 L540,1116" stroke="#B8B8BE" stroke-width="3" marker-end="url(#arr)"/>
+
+  <text x="60" y="1346" class="foot">开源 · 只支持 Mac · GitHub 搜 siyuanseever/voice-input</text>
+</svg>

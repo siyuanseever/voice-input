@@ -10,6 +10,8 @@ Post only after `feat/english-ui` is merged and pushed, so the README the link o
 
 ## Hacker News (Show HN)
 
+HN text posts can't carry images; the repo README has the diagram and screenshots.
+
 **Title** (80 chars max)
 
 Show HN: Push-to-talk dictation for Mac that won't rewrite or answer what you say
@@ -50,6 +52,12 @@ Happy to answer questions about the prompt rules. The failure modes of the cheap
 
 ## Reddit — r/macapps
 
+Post as an image gallery with the text below. Images, in order:
+
+![How it works: speak, record, transcribe, proofread, vocabulary rules, paste](img/architecture.en.png)
+
+![The panel's stats tab (made-up data)](../panel.en.png)
+
 **Title**
 
 I made a free, open-source push-to-talk dictation tool for Mac (Hammerspoon), built for talking to AI agents
@@ -74,6 +82,10 @@ Feedback welcome, especially from people who dictate in more than one language.
 ---
 
 ## Reddit — r/ClaudeAI
+
+Attach `img/architecture.en.png`:
+
+![How it works](img/architecture.en.png)
 
 **Title**
 
