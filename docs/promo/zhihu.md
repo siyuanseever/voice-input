@@ -40,6 +40,10 @@
 - **校对**：`qwen-plus`。提示词里只允许它做三件事：删掉"嗯啊"和口吃重复、改标点、把英文词改成标准写法。
   换同义词、调语序、补字都不行。
 
+下面是我自己转写记录里的三句，灰字是语音识别直接给的，黑字是最后贴出来的：
+
+![同一句话校对前后：Cloud 改成 Claude、TeamX 改成 tmux、删掉"呃""嗯"和重复，在问 AI 的话照原样保留](img/compare.zh.png)
+
 这里踩过一个坑：一开始校对用的是更便宜的 `qwen-flash`，它会把"跟我说"改成"跟我讲"、
 还凭空补半句话；把规则写得更严反而更糟。换成 `qwen-plus` 才老实。另外加了个保险：
 校对结果比原文长太多或短太多，就当它越界了，直接用原始听写。
@@ -90,5 +94,6 @@ Cloud Code => Claude Code    ← 转写完再替换：模型还是写错时兜�
 ## 发文时要上传的图（按出现顺序）
 
 1. `docs/promo/img/architecture.zh.png`：框架图（SVG 源文件同名，改了用 `docs/promo/img/render.py` 重新出图）
-2. `docs/hud.png`：录音浮窗
-3. `docs/panel.png`：面板统计页（虚构数据）
+2. `docs/promo/img/compare.zh.png`：校对前后对比（三句都是真实记录）
+3. `docs/hud.png`：录音浮窗
+4. `docs/panel.png`：面板统计页（虚构数据）

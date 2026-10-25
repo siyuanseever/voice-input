@@ -46,10 +46,14 @@
 
    ![封面：我的语音输入是怎么工作的，6 步](img/flow.xhs.png)
 
-2. `docs/hud.png`：屏幕底部的录音浮窗 +「转写中 2」
+2. `docs/promo/img/compare.zh.png`：校对前后对比（三句都是真实转写记录）
+
+   ![校对前后对比](img/compare.zh.png)
+
+3. `docs/hud.png`：屏幕底部的录音浮窗 +「转写中 2」
 
    ![录音浮窗](../hud.png)
 
-3. `docs/panel.png`：面板统计页（虚构数据）
+4. `docs/panel.png`：面板统计页（虚构数据）
 
    ![面板统计页](../panel.png)

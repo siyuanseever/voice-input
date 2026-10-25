@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1440" viewBox="0 0 1080 1440">
+  <!-- 对比图（3:4，知乎和小红书共用）。三条都是作者本机 ~/.local/state/voice-input/history.jsonl 里的真实记录：
+       raw = 语音识别模型直接给的，text = 校对 + 词表之后贴出来的。时间：2026-10-16 00:08:38、2026-10-25 12:43:54（截取一段）、
+       2026-09-30 21:06:14。改完运行 docs/promo/img/render.py 重新生成 PNG。 -->
+  <style>
+    text { font-family: "PingFang SC", -apple-system, sans-serif; fill: #1D1D1F; }
+    .title { font-size: 54px; font-weight: 700; }
+    .sub { font-size: 28px; fill: #6E6E73; }
+    .lab { font-size: 24px; font-weight: 600; }
+    .raw { font-size: 30px; fill: #6E6E73; }
+    .out { font-size: 30px; fill: #1D1D1F; }
+    .bad { fill: #C2410C; font-weight: 600; text-decoration: line-through; }
+    .good { fill: #15803D; font-weight: 700; }
+    .note { font-size: 24px; fill: #15803D; }
+    .foot { font-size: 24px; fill: #6E6E73; }
+    .card { fill: #FFFFFF; stroke: #DEDEE3; stroke-width: 2; }
+  </style>
+
+  <rect width="1080" height="1440" fill="#FAFAF7"/>
+  <text x="60" y="108" class="title">同一句话，校对前 vs 校对后</text>
+  <text x="60" y="158" class="sub">灰字：语音识别直接给的；黑字：这个工具贴到光标处的</text>
+
+  <!-- 例 1 -->
+  <rect x="60" y="200" width="960" height="340" rx="24" class="card"/>
+  <rect x="90" y="226" width="120" height="38" rx="19" fill="#F2F2F4"/>
+  <text x="150" y="254" text-anchor="middle" class="lab" style="fill:#6E6E73">直接听写</text>
+  <text x="90" y="310" class="raw"><tspan class="bad">呃</tspan>现在是什么情况了？为什么我看不到</text>
+  <text x="90" y="354" class="raw">任何的<tspan class="bad">Cloud</tspan>在Run<tspan class="bad">.</tspan></text>
+  <rect x="90" y="384" width="120" height="38" rx="19" fill="#E7F5EC"/>
+  <text x="150" y="412" text-anchor="middle" class="lab" style="fill:#15803D">贴出来的</text>
+  <text x="90" y="466" class="out">现在是什么情况了？为什么我看不到</text>
+  <text x="90" y="506" class="out">任何的<tspan class="good">Claude</tspan>在Run<tspan class="good">。</tspan></text>
+
+  <!-- 例 2 -->
+  <rect x="60" y="570" width="960" height="340" rx="24" class="card"/>
+  <rect x="90" y="596" width="120" height="38" rx="19" fill="#F2F2F4"/>
+  <text x="150" y="624" text-anchor="middle" class="lab" style="fill:#6E6E73">直接听写</text>
+  <text x="90" y="680" class="raw">那张图里看不到Claude Code，也看<tspan class="bad">看</tspan>不到</text>
+  <text x="90" y="724" class="raw">我的底部的<tspan class="bad">TeamX</tspan>的栏，<tspan class="bad">嗯</tspan>只能看到一个侧边栏</text>
+  <rect x="90" y="754" width="120" height="38" rx="19" fill="#E7F5EC"/>
+  <text x="150" y="782" text-anchor="middle" class="lab" style="fill:#15803D">贴出来的</text>
+  <text x="90" y="836" class="out">那张图里看不到Claude Code，也看不到</text>
+  <text x="90" y="876" class="out">我的底部的<tspan class="good">tmux</tspan>的栏，只能看到一个侧边栏</text>
+
+  <!-- 例 3：在问 AI 的问题，照原样写，不回答 -->
+  <rect x="60" y="940" width="960" height="390" rx="24" class="card"/>
+  <rect x="90" y="966" width="120" height="38" rx="19" fill="#F2F2F4"/>
+  <text x="150" y="994" text-anchor="middle" class="lab" style="fill:#6E6E73">直接听写</text>
+  <text x="90" y="1050" class="raw"><tspan class="bad">，</tspan>怎么会呢？你再找一找，为什么会找不到呢？</text>
+  <text x="90" y="1094" class="raw">是不是因为我跟你更换了一些 <tspan class="bad">cloud</tspan> 的账号呀？</text>
+  <rect x="90" y="1124" width="120" height="38" rx="19" fill="#E7F5EC"/>
+  <text x="150" y="1152" text-anchor="middle" class="lab" style="fill:#15803D">贴出来的</text>
+  <text x="90" y="1206" class="out">怎么会呢？你再找一找，为什么会找不到呢？</text>
+  <text x="90" y="1246" class="out">是不是因为我跟你更换了一些 <tspan class="good">Claude</tspan> 的账号呀？</text>
+  <text x="90" y="1288" class="note">↑ 这是在问 AI 的话，照原样写出来，不会替你回答</text>
+
+  <text x="60" y="1376" class="foot">规则：只许删口头语和重复、改标点、改英文写法，其余照原样</text>
+  <text x="60" y="1414" class="foot">例子来自作者本机的真实转写记录（2026 年 9–10 月）</text>
+</svg>
