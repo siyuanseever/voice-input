@@ -100,5 +100,7 @@ I talk to Claude Code most of the day, so I built a dictation tool around it:
 - Saying just "compact" gives `/compact`; saying just "continue" gives `continue`.
 - With the mouse option on: back button to talk, forward button for Return. You can lean back and run a whole session without the keyboard.
 
+- The vocabulary maintains itself: one line in my CLAUDE.md asks Claude to add a `wrong => right` rule whenever it can tell a term was misheard. My vocab file got 108 edits in a month, 86 of them by Claude.
+
 A month in: 1872 clips, about 13 hours of audio, under $2 at list price.
 Mac + Hammerspoon, MIT: https://github.com/siyuanseever/voice-input

@@ -69,6 +69,20 @@ question you were dictating to the agent, and the good ones are monthly subscrip
 Menu bar mic → **Open panel** to browse history (replay, re-transcribe, copy), see daily
 usage and cost, per-model call stats, and edit keys, model order, microphone and vocabulary.
 
+### Let your coding agent maintain the vocabulary
+
+If you dictate to Claude Code (or another agent), it can usually tell when a term was misheard. Ask it to
+record the fix. Something like this in `CLAUDE.md` works:
+
+```
+## Misheard words in my dictation
+I dictate most messages. When you can tell a term was misheard and are sure of the right one,
+add "wrong => right" to ~/.config/voice-input/vocab.txt and mention it in one line at the end of your reply.
+If the wrong spelling is a common word, include surrounding words so normal speech isn't rewritten. If unsure, ask.
+```
+
+My own vocabulary got 108 edits in its first month; 86 were made by Claude this way.
+
 ## Install
 
 Requires macOS and [Homebrew](https://brew.sh).

@@ -7,6 +7,9 @@
     <marker id="arr2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
       <path d="M0,0 L10,5 L0,10 z" fill="#B0A68F"/>
     </marker>
+    <marker id="arr3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#D97757"/>
+    </marker>
   </defs>
   <style>
     text { font-family: "PingFang SC", -apple-system, "Helvetica Neue", sans-serif; fill: #1D1D1F; }
@@ -22,6 +25,8 @@
     .inner { fill: #F5F5F7; stroke: #E5E5EA; stroke-width: 1; }
     .flow { stroke: #8E8E93; stroke-width: 2.5; fill: none; }
     .feed { stroke: #B0A68F; stroke-width: 1.8; stroke-dasharray: 6 5; fill: none; }
+    .loop { stroke: #D97757; stroke-width: 2.5; fill: none; }
+    .lt { font-size: 15px; fill: #B4532F; font-weight: 600; }
   </style>
 
   <rect width="1440" height="760" fill="#FAFAF7"/>
@@ -110,11 +115,23 @@
   <path d="M1240,310 L1276,310" class="flow" marker-end="url(#arr)"/>
 
   <!-- 常用词表 -->
-  <rect x="480" y="580" width="760" height="110" rx="16" fill="#F4F0E6" stroke="#E2D9C3" stroke-width="1.5"/>
-  <text x="504" y="618" class="h">常用词表 vocab.txt</text>
-  <text x="504" y="652" class="t">一行一个词：写进 ③④ 的提示词，听到发音相近的就按这个写法输出</text>
-  <text x="504" y="676" class="t">"错误 =&gt; 正确"：模型还是写错时，在 ⑤ 转写完再替换</text>
-  <path d="M630,580 L630,474" class="feed" marker-end="url(#arr2)"/>
-  <path d="M945,580 L945,474" class="feed" marker-end="url(#arr2)"/>
-  <path d="M1175,580 L1175,474" class="feed" marker-end="url(#arr2)"/>
+  <rect x="480" y="560" width="560" height="150" rx="16" fill="#F4F0E6" stroke="#E2D9C3" stroke-width="1.5"/>
+  <text x="504" y="600" class="h">常用词表 vocab.txt</text>
+  <text x="504" y="636" class="t">一行一个词：写进 ③④ 的提示词，</text>
+  <text x="504" y="660" class="t">听到发音相近的就按这个写法输出</text>
+  <text x="504" y="690" class="t">"错误 =&gt; 正确"：在 ⑤ 转写完再替换</text>
+  <path d="M630,560 L630,474" class="feed" marker-end="url(#arr2)"/>
+  <path d="M945,560 L945,474" class="feed" marker-end="url(#arr2)"/>
+  <path d="M1020,560 L1020,515 L1175,515 L1175,474" class="feed" marker-end="url(#arr2)"/>
+
+  <!-- Agent 闭环：文字进了 Claude Code，它看出听错的词就记进词表 -->
+  <rect x="1110" y="560" width="300" height="150" rx="16" fill="#FDF1EC" stroke="#D97757" stroke-width="2"/>
+  <text x="1130" y="598" class="h">Claude Code（Agent）</text>
+  <text x="1130" y="632" class="t">读你说的话，看出哪个词听错了，</text>
+  <text x="1130" y="656" class="t">就把"错误 =&gt; 正确"记进词表</text>
+  <text x="1130" y="688" class="s">作者的词表一个月改了 108 次，86 次是它</text>
+  <path d="M1345,474 L1345,556" class="loop" marker-end="url(#arr3)"/>
+  <text x="1335" y="528" class="lt" text-anchor="end">文字进了</text>
+  <text x="1335" y="547" class="lt" text-anchor="end">对话框</text>
+  <path d="M1110,635 L1044,635" class="loop" marker-end="url(#arr3)"/>
 </svg>
