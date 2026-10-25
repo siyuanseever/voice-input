@@ -64,7 +64,7 @@
 ```bash
 brew install --cask hammerspoon
 brew install ffmpeg jq
-git clone https://github.com/threedaycat/voice-input ~/projects/voice-input
+git clone https://github.com/siyuanseever/voice-input ~/projects/voice-input
 ~/projects/voice-input/install.sh
 ```
 
