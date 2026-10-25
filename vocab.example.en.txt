@@ -1,0 +1,57 @@
+# Example vocabulary. install.sh copies it to ~/.config/voice-input/vocab.txt; edit that copy afterwards
+# (also editable in the menu bar microphone → Open Panel → Settings → Vocabulary).
+#
+# Two kinds of lines:
+#   one term per line        → added to the prompt: "if you hear something that sounds like this, spell it this way"
+#   wrong => right           → replaced after transcription, for when the model still gets it wrong
+#                              (English is matched as whole words, case-insensitive)
+#
+# Tip: use it for a few days first, then add the terms that keep coming out wrong in your real transcripts.
+# A very long list makes the model force words from it into places where you did not say them.
+
+# --- AI / tools ---
+Claude Code
+Claude
+Codex
+ChatGPT
+Gemini
+DeepSeek
+Qwen
+Cursor
+prompt
+token
+agent
+workflow
+
+# --- Development ---
+git
+GitHub
+commit
+push
+merge
+worktree
+API
+API Key
+Markdown
+tmux
+iTerm2
+Neovim
+Homebrew
+Xcode
+
+# --- Platforms ---
+macOS
+iOS
+iCloud
+
+# --- Fixes: wrong => right ---
+# Put specific rules before broad ones: rules run in order, and a broad rule that runs first can break a specific one.
+Cloud Code => Claude Code
+Codecs => Codex
+work tree => worktree
+MacOS => macOS
+Mac OS => macOS
+Deepseek => DeepSeek
+deep seek => DeepSeek
+# If you talk to Claude a lot, "cloud" is usually a misheard "Claude". Remove the # on the next line if you need it.
+# cloud => Claude

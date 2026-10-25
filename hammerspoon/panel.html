@@ -7,6 +7,8 @@
   语音输入的面板：记录 / 统计 / 设置。由 hammerspoon/voice_panel.lua 用 hs.webview 打开。
   数据由 Lua 调 app.render(data) 推进来；页面上的操作用
   window.webkit.messageHandlers.voice.postMessage({cmd, ...}) 发回 Lua。
+  中英两套文字：固定文字写中文，英文放在 data-en（innerHTML）/ data-en-ph（placeholder）里，
+  render 时按 settings.lang 换；拼出来的文字用 t(中文, 英文)。
 -->
 <style>
   :root {
@@ -151,16 +153,16 @@
 <body>
 <header>
   <div class="seg" id="tabs">
-    <button data-tab="records" class="on">记录</button>
-    <button data-tab="stats">统计</button>
-    <button data-tab="settings">设置</button>
+    <button data-tab="records" class="on" data-en="History">记录</button>
+    <button data-tab="stats" data-en="Stats">统计</button>
+    <button data-tab="settings" data-en="Settings">设置</button>
   </div>
 </header>
 <main>
   <section id="records" class="on">
     <div class="toolbar">
-      <input class="search" id="q" placeholder="搜索转写内容">
-      <button class="btn" onclick="send({cmd:'openFolder'})">录音文件夹</button>
+      <input class="search" id="q" placeholder="搜索转写内容" data-en-ph="Search transcripts">
+      <button class="btn" onclick="send({cmd:'openFolder'})" data-en="Recordings Folder">录音文件夹</button>
     </div>
     <div id="list"></div>
   </section>
@@ -169,11 +171,11 @@
     <div class="tiles" id="tiles"></div>
     <div class="card">
       <div class="card-h">
-        <h3>最近 14 天</h3>
+        <h3 data-en="Last 14 days">最近 14 天</h3>
         <div class="seg small" id="metric">
-          <button data-m="count" class="on">次数</button>
-          <button data-m="chars">字数</button>
-          <button data-m="secs">时长</button>
+          <button data-m="count" class="on" data-en="Count">次数</button>
+          <button data-m="chars" data-en="Characters">字数</button>
+          <button data-m="secs" data-en="Duration">时长</button>
         </div>
       </div>
       <div class="legend" id="legend"></div>
@@ -182,23 +184,38 @@
       <div class="totals" id="totals"></div>
     </div>
     <div class="card" style="margin-top:10px">
-      <div class="card-h"><h3>按模型 · 今天</h3></div>
+      <div class="card-h"><h3 data-en="By model · Today">按模型 · 今天</h3></div>
       <table class="mt" id="mtable"></table>
-      <div class="note">「实际扣费」来自阿里云账单（~/.local/state/voice-input/billing.json，要有脚本定时写入），账单按天出、会晚几个小时，
-        免费额度内的调用是 ¥0。没有这个文件时按标价估算：qwen3-asr-flash ¥0.00022/秒录音；qwen-plus（转写后校对）
-        输入 ¥0.8、输出 ¥2 每百万 Token。<br>
-        Gemini 的额度上限来自它的限额报错（触发过一次才知道），「估计剩余」= 上限 − 今天的请求数，仅供参考。</div>
+      <div class="note" id="mnote"></div>
     </div>
   </section>
 
   <section id="settings">
     <div class="field">
-      <label class="t">阿里云百炼 API Key</label>
+      <label class="t" data-en="Language">界面语言</label>
+      <div class="hint" data-en="Menu, overlay and this panel. Auto follows the macOS preferred language. Takes effect after saving.">菜单、浮窗和这个面板的文字。「自动」跟系统首选语言走，保存后生效。</div>
+      <div class="row"><select id="language" style="max-width:220px">
+        <option value="auto" data-en="Auto (follow system)">自动（跟系统）</option>
+        <option value="zh">中文</option>
+        <option value="en">English</option>
+      </select></div>
+    </div>
+    <div class="field">
+      <label class="t" data-en="Alibaba Cloud Model Studio API Key">阿里云百炼 API Key</label>
       <div class="hint" id="keyHint-qwen"></div>
       <div class="row">
-        <input class="input" id="key-qwen" type="password" placeholder="粘贴新的 Key；留空则保持不变" autocomplete="off">
-        <button class="btn" onclick="toggleKey('qwen')" id="keyEye-qwen">显示</button>
-        <button class="btn" onclick="testKey('qwen')" id="testBtn-qwen">测试连接</button>
+        <input class="input" id="key-qwen" type="password" placeholder="粘贴新的 Key；留空则保持不变" data-en-ph="Paste a new key; leave empty to keep the current one" autocomplete="off">
+        <button class="btn" onclick="toggleKey('qwen')" id="keyEye-qwen" data-en="Show">显示</button>
+        <button class="btn" onclick="testKey('qwen')" id="testBtn-qwen" data-en="Test">测试连接</button>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <span style="color:var(--ink-2)" data-en="Region">站点</span>
+        <select id="region">
+          <option value="auto" data-en="Auto (detect from key)">自动（按 Key 识别）</option>
+          <option value="cn" data-en="China (dashscope.aliyuncs.com)">国内站（dashscope.aliyuncs.com）</option>
+          <option value="intl" data-en="International (dashscope-intl.aliyuncs.com)">国际站（dashscope-intl.aliyuncs.com）</option>
+        </select>
+        <span class="hint" style="margin:0" data-en="Keys from the two regions are not interchangeable">两个站点的 Key 不通用</span>
       </div>
       <div id="testMsg-qwen" style="margin-top:6px"></div>
     </div>
@@ -206,52 +223,67 @@
       <label class="t">Gemini API Key</label>
       <div class="hint" id="keyHint-gemini"></div>
       <div class="row">
-        <input class="input" id="key-gemini" type="password" placeholder="粘贴新的 Key；留空则保持不变" autocomplete="off">
-        <button class="btn" onclick="toggleKey('gemini')" id="keyEye-gemini">显示</button>
-        <button class="btn" onclick="testKey('gemini')" id="testBtn-gemini">测试连接</button>
+        <input class="input" id="key-gemini" type="password" placeholder="粘贴新的 Key；留空则保持不变" data-en-ph="Paste a new key; leave empty to keep the current one" autocomplete="off">
+        <button class="btn" onclick="toggleKey('gemini')" id="keyEye-gemini" data-en="Show">显示</button>
+        <button class="btn" onclick="testKey('gemini')" id="testBtn-gemini" data-en="Test">测试连接</button>
       </div>
       <div id="testMsg-gemini" style="margin-top:6px"></div>
     </div>
     <div class="field">
-      <label class="t">模型顺序</label>
-      <div class="hint">勾选要用的模型，从上往下试；前一个出错或额度用完，自动换下一个。</div>
+      <label class="t" data-en="Model order">模型顺序</label>
+      <div class="hint" data-en="Check the models to use. They are tried from top to bottom; if one fails or runs out of quota, the next one is used.">勾选要用的模型，从上往下试；前一个出错或额度用完，自动换下一个。</div>
       <div class="models" id="models"></div>
       <div class="row" style="margin-top:8px">
-        <input class="input" id="newModel" placeholder="添加模型，例如 qwen3-asr-flash、gemini-2.5-pro">
-        <button class="btn" onclick="addModel()">添加</button>
+        <input class="input" id="newModel" placeholder="添加模型，例如 qwen3-asr-flash、gemini-2.5-pro" data-en-ph="Add a model, e.g. qwen3-asr-flash, gemini-2.5-pro">
+        <button class="btn" onclick="addModel()" data-en="Add">添加</button>
       </div>
     </div>
     <div class="field">
-      <label class="t">常用词</label>
-      <div class="hint">一行一个词：写进 prompt，让模型按这个写法输出。「错误写法 =&gt; 正确写法」：转写后自动替换。以 # 开头是注释。</div>
+      <label class="t" data-en="Vocabulary">常用词</label>
+      <div class="hint" data-en="One term per line: added to the prompt so the model uses this spelling. &quot;wrong =&gt; right&quot;: replaced after transcription. Lines starting with # are comments.">一行一个词：写进 prompt，让模型按这个写法输出。「错误写法 =&gt; 正确写法」：转写后自动替换。以 # 开头是注释。</div>
       <textarea class="input" id="vocab" spellcheck="false"
         style="width:100%;height:220px;resize:vertical;font:12px/1.5 ui-monospace,Menlo,monospace"></textarea>
     </div>
     <div class="field">
-      <label class="t">麦克风</label>
-      <div class="hint">按名字匹配，插拔其他声卡也不会选错。</div>
+      <label class="t" data-en="Microphone">麦克风</label>
+      <div class="hint" data-en="Matched by name, so plugging in other audio devices does not change it.">按名字匹配，插拔其他声卡也不会选错。</div>
       <div class="row"><select id="mic" style="flex:1"></select></div>
     </div>
     <div class="field">
-      <label class="t">触发键</label>
-      <div class="hint">按住说话，松开转写；轻点开始，再点结束。</div>
+      <label class="t" data-en="Trigger key">触发键</label>
+      <div class="hint" data-en="Hold to talk, release to transcribe; or tap to start and tap again to stop.">按住说话，松开转写；轻点开始，再点结束。</div>
       <div class="row">
         <div style="flex:1" id="trigger"></div>
-        <button class="btn" onclick="send({cmd:'setTrigger'})">修改…</button>
+        <button class="btn" onclick="send({cmd:'setTrigger'})" data-en="Change…">修改…</button>
       </div>
     </div>
     <div class="field">
-      <label class="t">保留最近几段录音</label>
-      <div class="hint">录音结束（包括取消、出错）都会先存一份，方便重新转写。</div>
+      <label class="t" data-en="Recordings to keep">保留最近几段录音</label>
+      <div class="hint" data-en="Every recording is saved when it ends (including cancelled and failed ones), so you can transcribe it again.">录音结束（包括取消、出错）都会先存一份，方便重新转写。</div>
       <div class="row"><input class="input" id="keep" type="number" min="3" max="100" style="max-width:100px"></div>
     </div>
-    <div class="savebar"><span id="saveMsg"></span><button class="btn primary" onclick="save()">保存</button></div>
+    <div class="savebar"><span id="saveMsg"></span><button class="btn primary" onclick="save()" data-en="Save">保存</button></div>
   </section>
 </main>
 
 <script>
 const send = (m) => window.webkit.messageHandlers.voice.postMessage(m);
 let DATA = null, metric = "count", models = [], busy = {};
+let LANG = "zh";
+const t = (zh, en) => LANG === "zh" ? zh : en;
+// 固定文字换语言：第一次换之前把中文原文存进 data-zh，换回中文时用
+function applyLang() {
+  document.documentElement.lang = LANG === "zh" ? "zh-CN" : "en";
+  document.title = t("语音输入", "Voice Input");
+  document.querySelectorAll("[data-en]").forEach(el => {
+    if (el.dataset.zh === undefined) el.dataset.zh = el.innerHTML;
+    el.innerHTML = LANG === "zh" ? el.dataset.zh : el.dataset.en;
+  });
+  document.querySelectorAll("[data-en-ph]").forEach(el => {
+    if (el.dataset.zhPh === undefined) el.dataset.zhPh = el.placeholder;
+    el.placeholder = LANG === "zh" ? el.dataset.zhPh : el.dataset.enPh;
+  });
+}
 
 document.querySelectorAll("#tabs button").forEach(b => b.onclick = () => {
   document.querySelectorAll("#tabs button").forEach(x => x.classList.toggle("on", x === b));
@@ -269,18 +301,30 @@ function fmtWhen(at) {
   const d = new Date(at.replace(" ", "T")), now = new Date();
   const hm = at.slice(11, 16);
   const days = Math.floor((new Date(now.toDateString()) - new Date(d.toDateString())) / 864e5);
-  if (days === 0) return "今天 " + hm;
-  if (days === 1) return "昨天 " + hm;
+  if (days === 0) return t("今天 ", "Today ") + hm;
+  if (days === 1) return t("昨天 ", "Yesterday ") + hm;
   return at.slice(5, 10) + " " + hm;
 }
-function fmtDur(s) { s = Math.round(s || 0); return s < 60 ? s + " 秒" : Math.floor(s / 60) + " 分 " + (s % 60) + " 秒"; }
+function fmtDur(s) {
+  s = Math.round(s || 0);
+  return s < 60 ? s + t(" 秒", "s") : Math.floor(s / 60) + t(" 分 ", "m ") + (s % 60) + t(" 秒", "s");
+}
 // 花费一次才几厘钱，保留到够看出变化的位数
 function yuan(v) { v = v || 0; return v === 0 ? "0" : v < 0.01 ? v.toFixed(4) : v < 1 ? v.toFixed(3) : v.toFixed(2); }
+// 带币种：国内站 ¥，国际站 $（billing.json 是国内站账单，固定 ¥）
+const cur = () => DATA?.settings?.currency || "¥";
+const money = v => cur() + yuan(v);
+const UNKNOWN = "未记录模型"; // Lua 那边的内部键
+const modelLabel = n => n === UNKNOWN ? t("未记录模型", "Unrecorded model") : n;
 function fmtMin(s) { const m = (s || 0) / 60; return m < 10 ? m.toFixed(1) : Math.round(m); }
 
 window.app = {
   render(d) {
     DATA = d;
+    const lang = d.settings.lang === "en" ? "en" : "zh";
+    if (lang !== LANG) document.querySelectorAll("[id^=testMsg-]").forEach(el => el.innerHTML = ""); // 旧语言的测试结果
+    LANG = lang;
+    applyLang();
     // 已启用的按设置顺序在前，其余已知模型没勾选、排在后面
     models = d.settings.models.map(n => ({ name: n, on: true }));
     for (const k of d.settings.knownModels || []) if (!models.some(m => m.name === k.name)) models.push({ name: k.name, on: false });
@@ -289,7 +333,7 @@ window.app = {
   onRetranscribed(id, r) {
     busy[id] = false;
     const it = DATA.items.find(x => x.id === id);
-    if (r.ok) { it.text = r.text; it.model = r.model || it.model; it.flash = "已更新"; }
+    if (r.ok) { it.text = r.text; it.model = r.model || it.model; it.flash = t("已更新", "Updated"); }
     else it.error = r.err;
     renderList();
     setTimeout(() => { it.flash = null; it.error = null; renderList(); }, 4000);
@@ -299,7 +343,7 @@ window.app = {
     document.getElementById("testMsg-" + p).innerHTML = r.ok ? `<span class="flash">✓ ${esc(r.msg)}</span>` : `<span class="err">${esc(r.msg)}</span>`;
   },
   onSaved(msg) { const el = document.getElementById("saveMsg"); el.innerHTML = `<span class="flash">✓ ${esc(msg)}</span>`; setTimeout(() => el.innerHTML = "", 2500); },
-  onCopied(id) { const it = DATA.items.find(x => x.id === id); if (it) { it.flash = "已复制"; renderList(); setTimeout(() => { it.flash = null; renderList(); }, 1500); } },
+  onCopied(id) { const it = DATA.items.find(x => x.id === id); if (it) { it.flash = t("已复制", "Copied"); renderList(); setTimeout(() => { it.flash = null; renderList(); }, 1500); } },
 };
 
 /* ---------- 记录 ---------- */
@@ -308,24 +352,25 @@ function renderList() {
   const q = document.getElementById("q").value.trim();
   const items = DATA.items.filter(it => !q || (it.text || "").includes(q));
   const el = document.getElementById("list");
-  if (!items.length) { el.innerHTML = `<div class="empty-state">${q ? "没有匹配的记录" : "还没有记录，按住触发键说句话试试"}</div>`; return; }
-  const opts = [`<option value="">自动（按顺序）</option>`].concat(DATA.settings.models.map(m => `<option>${esc(m)}</option>`)).join("");
+  if (!items.length) { el.innerHTML = `<div class="empty-state">${q ? t("没有匹配的记录", "No matching transcripts")
+    : t("还没有记录，按住触发键说句话试试", "Nothing yet. Hold the trigger key and say something.")}</div>`; return; }
+  const opts = [`<option value="">${t("自动（按顺序）", "Auto (in order)")}</option>`].concat(DATA.settings.models.map(m => `<option>${esc(m)}</option>`)).join("");
   el.innerHTML = items.map(it => `
     <div class="item">
       <div class="meta">
         <span>${fmtWhen(it.at)}</span>
         ${it.dur ? `<span>· ${fmtDur(it.dur)}</span>` : ""}
         ${it.model ? `<span>· ${esc(it.model)}</span>` : ""}
-        ${!it.text && it.audio ? `<span class="tag">未转写</span>` : ""}
+        ${!it.text && it.audio ? `<span class="tag">${t("未转写", "Not transcribed")}</span>` : ""}
       </div>
-      <div class="text ${it.text ? "" : "empty"}">${it.text ? esc(it.text) : "这段录音还没有转写结果"}</div>
+      <div class="text ${it.text ? "" : "empty"}">${it.text ? esc(it.text) : t("这段录音还没有转写结果", "This recording has no transcript yet")}</div>
       <div class="actions">
-        ${it.text ? `<button class="btn" onclick="copy(${it.id})">复制</button>` : ""}
+        ${it.text ? `<button class="btn" onclick="copy(${it.id})">${t("复制", "Copy")}</button>` : ""}
         ${it.audio ? `
-          <button class="btn" onclick="audioCmd('play', ${it.id})">播放</button>
-          <button class="btn" ${busy[it.id] ? "disabled" : ""} onclick="retr(${it.id})">${busy[it.id] ? "转写中…" : "重新转写"}</button>
+          <button class="btn" onclick="audioCmd('play', ${it.id})">${t("播放", "Play")}</button>
+          <button class="btn" ${busy[it.id] ? "disabled" : ""} onclick="retr(${it.id})">${busy[it.id] ? t("转写中…", "Transcribing…") : t("重新转写", "Retranscribe")}</button>
           <select id="m${it.id}">${opts}</select>
-          <button class="btn" onclick="audioCmd('reveal', ${it.id})">在 Finder 中显示</button>` : ""}
+          <button class="btn" onclick="audioCmd('reveal', ${it.id})">${t("在 Finder 中显示", "Show in Finder")}</button>` : ""}
         ${it.flash ? `<span class="flash">✓ ${esc(it.flash)}</span>` : ""}
         ${it.error ? `<span class="err">${esc(it.error)}</span>` : ""}
       </div>
@@ -342,18 +387,20 @@ function retr(id) {
 
 /* ---------- 统计 ---------- */
 function renderStats() {
-  const s = DATA.stats, t = s.today, y = s.yesterday;
-  const diff = (a, b, unit) => b ? `昨天 ${b}${unit}` : "昨天没有使用";
+  const s = DATA.stats, y = s.yesterday;
+  const diff = (a, b, unit) => b ? `${t("昨天", "Yesterday")} ${b}${unit}` : t("昨天没有使用", "Not used yesterday");
+  const T = s.today; // 不能叫 t：t 是翻译函数
   document.getElementById("tiles").innerHTML = `
-    <div class="tile"><div class="k">今天 · 次数</div><div class="v">${t.count}<small>次</small></div><div class="d">${diff(t.count, y.count, " 次")}</div></div>
-    <div class="tile"><div class="k">今天 · 字数</div><div class="v">${t.chars}<small>字</small></div><div class="d">${diff(t.chars, y.chars, " 字")}</div></div>
-    <div class="tile"><div class="k">今天 · 录音时长</div><div class="v">${fmtMin(t.secs)}<small>分钟</small></div><div class="d">${diff(t.secs, y.secs ? fmtMin(y.secs) : 0, " 分钟")}</div></div>
-    ${s.billing ? `<div class="tile"><div class="k">今天 · 实际扣费</div><div class="v"><small style="margin:0 1px 0 0">¥</small>${yuan(s.billing.today)}</div>
-      <div class="d">本月 ¥${yuan(s.billing.month)} · 标价折算 ¥${yuan(s.cost.month)}（免费额度内不扣）<br>阿里云账单，截至 ${esc((s.billing.at || "").slice(5))}</div></div>`
-    : `<div class="tile"><div class="k">今天 · 花费（估算）</div><div class="v"><small style="margin:0 1px 0 0">¥</small>${yuan(s.cost.today)}</div><div class="d">本月 ¥${yuan(s.cost.month)} · 累计 ¥${yuan(s.cost.total)}，按标价算，没扣免费额度</div></div>`}`;
+    <div class="tile"><div class="k">${t("今天 · 次数", "Today · Count")}</div><div class="v">${T.count}<small>${t("次", "")}</small></div><div class="d">${diff(T.count, y.count, t(" 次", ""))}</div></div>
+    <div class="tile"><div class="k">${t("今天 · 字数", "Today · Characters")}</div><div class="v">${T.chars}<small>${t("字", "")}</small></div><div class="d">${diff(T.chars, y.chars, t(" 字", ""))}</div></div>
+    <div class="tile"><div class="k">${t("今天 · 录音时长", "Today · Audio")}</div><div class="v">${fmtMin(T.secs)}<small>${t("分钟", "min")}</small></div><div class="d">${diff(T.secs, y.secs ? fmtMin(y.secs) : 0, t(" 分钟", " min"))}</div></div>
+    ${s.billing ? `<div class="tile"><div class="k">${t("今天 · 实际扣费", "Today · Billed")}</div><div class="v"><small style="margin:0 1px 0 0">¥</small>${yuan(s.billing.today)}</div>
+      <div class="d">${t("本月", "This month")} ¥${yuan(s.billing.month)} · ${t("标价折算", "list price")} ${money(s.cost.month)}${t("（免费额度内不扣）", " (free quota is not billed)")}<br>${t("阿里云账单，截至", "Alibaba Cloud bill as of")} ${esc((s.billing.at || "").slice(5))}</div></div>`
+    : `<div class="tile"><div class="k">${t("今天 · 花费（估算）", "Today · Cost (est.)")}</div><div class="v"><small style="margin:0 1px 0 0">${cur()}</small>${yuan(s.cost.today)}</div><div class="d">${t("本月", "This month")} ${money(s.cost.month)} · ${t("累计", "total")} ${money(s.cost.total)}${t("，按标价算，没扣免费额度", " at list price, free quota not deducted")}</div></div>`}`;
   const tot = s.total;
-  document.getElementById("totals").textContent =
-    `累计 ${tot.count} 次 · ${tot.chars} 字 · 录音 ${fmtMin(tot.secs)} 分钟` + (s.estimated ? "（早期记录没存时长，按语速估算）" : "");
+  document.getElementById("totals").textContent = t(
+    `累计 ${tot.count} 次 · ${tot.chars} 字 · 录音 ${fmtMin(tot.secs)} 分钟` + (s.estimated ? "（早期记录没存时长，按语速估算）" : ""),
+    `Total ${tot.count} transcripts · ${tot.chars} characters · ${fmtMin(tot.secs)} min of audio` + (s.estimated ? " (early records have no duration; estimated from speech rate)" : ""));
   renderChart();
 }
 // 颜色跟着模型名走（不跟排名/顺序）：常用的三个模型固定色，其他按首次出现依次取后面的槽位
@@ -361,7 +408,7 @@ const FIXED = { "gemini-3-flash-preview": "--s1", "gemini-2.5-flash": "--s2", "g
 const colorOf = (() => {
   const extra = {}; let next = 4;
   return name => {
-    if (name === "未记录模型") return "var(--s-unknown)";
+    if (name === UNKNOWN) return "var(--s-unknown)";
     if (FIXED[name]) return `var(${FIXED[name]})`;
     if (!extra[name]) extra[name] = next <= 6 ? `--s${next++}` : "--s-unknown";
     return `var(${extra[name]})`;
@@ -374,9 +421,9 @@ function renderChart() {
   const mval = (m) => metric === "secs" ? (m?.secs || 0) / 60 : (m?.[metric] || 0);
   const val = d => metric === "secs" ? d.secs / 60 : d[metric];
   const max = Math.max(1, ...days.map(val));
-  const unit = { count: "次", chars: "字", secs: "分钟" }[metric];
+  const unit = { count: t("次", ""), chars: t("字", "chars"), secs: t("分钟", "min") }[metric];
   const used = models.filter(n => days.some(d => d.byModel?.[n]));
-  document.getElementById("legend").innerHTML = used.map(n => `<span><i style="background:${colorOf(n)}"></i>${esc(n)}</span>`).join("");
+  document.getElementById("legend").innerHTML = used.map(n => `<span><i style="background:${colorOf(n)}"></i>${esc(modelLabel(n))}</span>`).join("");
   chart.querySelectorAll(".col").forEach(c => c.remove());
   days.forEach(d => {
     const col = document.createElement("div"); col.className = "col";
@@ -396,10 +443,12 @@ function renderChart() {
       const fmt = v => metric === "secs" ? (v).toFixed(1) : Math.round(v);
       // 按模型一行一个，色块和柱子颜色对应，数量多的在上面（和柱子从上到下的顺序无关，只按大小）
       const rows = used.filter(n => d.byModel?.[n]).map(n => [n, mval(d.byModel[n])]).sort((a, b) => b[1] - a[1])
-        .map(([n, v]) => `<div class="tr"><i style="background:${colorOf(n)}"></i><span class="n">${esc(n)}</span><span>${fmt(v)} ${unit}</span></div>`);
+        .map(([n, v]) => `<div class="tr"><i style="background:${colorOf(n)}"></i><span class="n">${esc(modelLabel(n))}</span><span>${fmt(v)} ${unit}</span></div>`);
       const [mo, dd] = d.date.slice(5).split("-").map(Number);
-      tip.innerHTML = `<div class="th">${mo}月${dd}日 · 共 ${fmt(val(d))} ${unit}</div>` + rows.join("") +
-        (d.billed != null ? `<div class="tf">实际扣费 ¥${yuan(d.billed)}${d.cost ? ` · 标价折算 ¥${yuan(d.cost)}` : ""}</div>` : d.cost ? `<div class="tf">花费约 ¥${yuan(d.cost)}（按标价估算）</div>` : "");
+      const MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+      tip.innerHTML = `<div class="th">${t(`${mo}月${dd}日 · 共`, `${MON[mo - 1]} ${dd} · total`)} ${fmt(val(d))} ${unit}</div>` + rows.join("") +
+        (d.billed != null ? `<div class="tf">${t("实际扣费", "Billed")} ¥${yuan(d.billed)}${d.cost ? ` · ${t("标价折算", "list price")} ${money(d.cost)}` : ""}</div>`
+          : d.cost ? `<div class="tf">${t(`花费约 ${money(d.cost)}（按标价估算）`, `Cost about ${money(d.cost)} (list price)`)}</div>` : "");
       // 柱子上方放得下就放上方居中；放不下就贴在柱子旁边（右半边的柱子放左侧），不盖住柱子
       const r = col.getBoundingClientRect(), cr = chart.getBoundingClientRect();
       const tw = tip.offsetWidth, th = tip.offsetHeight, top = stack.getBoundingClientRect().top - cr.top;
@@ -424,24 +473,41 @@ function renderChart() {
 function renderModelTable() {
   const rows = DATA.stats.models.filter(m => !m.unknown);
   document.getElementById("mtable").innerHTML = `
-    <tr><th>模型</th><th>成功转写</th><th>调用</th><th>${DATA.stats.billing ? "实际扣费" : "花费（估算）"}</th><th>被限额</th><th>上限</th><th>估计剩余</th><th>状态</th></tr>` +
+    <tr><th>${t("模型", "Model")}</th><th>${t("成功转写", "Transcribed")}</th><th>${t("调用", "Calls")}</th><th>${DATA.stats.billing ? t("实际扣费", "Billed") : t("花费（估算）", "Cost (est.)")}</th><th>${t("被限额", "Rate-limited")}</th><th>${t("上限", "Limit")}</th><th>${t("估计剩余", "Est. left")}</th><th>${t("状态", "Status")}</th></tr>` +
     rows.map(m => `<tr>
       <td><i style="background:${colorOf(m.name)}"></i><span class="name">${esc(m.name)}</span></td>
       <td>${m.todayOk}</td><td>${m.calls}</td>
-      <td>${!m.paid ? `<span style="color:var(--ink-3)">免费</span>` : m.billed != null ? `¥${yuan(m.billed)}${m.cost ? `<span style="color:var(--ink-3)"> / 标价 ¥${yuan(m.cost)}</span>` : ""}` : "¥" + yuan(m.cost)}</td><td>${m.limited || "—"}</td>
-      <td>${m.limit ? `${m.limit} 次/${m.limitUnit || "?"}` : `<span style="color:var(--ink-3)">未知</span>`}</td>
-      <td>${m.remaining != null ? "约 " + m.remaining : "—"}</td>
-      <td>${m.cooling ? `<span class="pill cool">冷却中</span>` : `<span class="pill ok">可用</span>`}</td>
+      <td>${!m.paid ? `<span style="color:var(--ink-3)">${t("免费", "Free")}</span>` : m.billed != null ? `¥${yuan(m.billed)}${m.cost ? `<span style="color:var(--ink-3)"> / ${t("标价", "list")} ${money(m.cost)}</span>` : ""}` : money(m.cost)}</td><td>${m.limited || "—"}</td>
+      <td>${m.limit ? `${m.limit}${t(" 次/", "/")}${{ day: t("天", "day"), minute: t("分钟", "min") }[m.limitUnit] || "?"}` : `<span style="color:var(--ink-3)">${t("未知", "Unknown")}</span>`}</td>
+      <td>${m.remaining != null ? t("约 ", "~") + m.remaining : "—"}</td>
+      <td>${m.cooling ? `<span class="pill cool">${t("冷却中", "Cooling down")}</span>` : `<span class="pill ok">${t("可用", "Available")}</span>`}</td>
     </tr>`).join("");
+  const intl = DATA.settings.region === "intl";
+  document.getElementById("mnote").innerHTML = t(
+    `「实际扣费」来自阿里云账单（~/.local/state/voice-input/billing.json，要有脚本定时写入），账单按天出、会晚几个小时，
+     免费额度内的调用是 ¥0。没有这个文件时按标价估算：` + (intl
+       ? `国际站 qwen3-asr-flash $0.000035/秒录音；qwen-plus（转写后校对）输入 $0.4、输出 $1.2 每百万 Token。`
+       : `qwen3-asr-flash ¥0.00022/秒录音；qwen-plus（转写后校对）输入 ¥0.8、输出 ¥2 每百万 Token。`) +
+    `<br>Gemini 的额度上限来自它的限额报错（触发过一次才知道），「估计剩余」= 上限 − 今天的请求数，仅供参考。`,
+    `Costs are estimated at list price: ` + (intl
+       ? `qwen3-asr-flash $0.000035 per second of audio; qwen-plus (proofreading) $0.4 input / $1.2 output per million tokens.`
+       : `qwen3-asr-flash ¥0.00022 per second of audio; qwen-plus (proofreading) ¥0.8 input / ¥2 output per million tokens.`) +
+    ` Free-quota usage is not deducted; check the Alibaba Cloud console for the actual bill.` +
+    `<br>Gemini limits come from its rate-limit errors (known only after hitting one once). "Est. left" = limit − today's requests; for reference only.`);
 }
 
 /* ---------- 设置 ---------- */
 function renderSettings() {
   const st = DATA.settings;
+  const console_ = st.region === "intl" ? "modelstudio.console.alibabacloud.com" : "bailian.console.aliyun.com";
   document.getElementById("keyHint-qwen").textContent = st.dsMasked
-    ? `当前：${st.dsMasked}（${st.dsSource}）· 默认转写用它` : "还没有设置 Key。到 bailian.console.aliyun.com → API-KEY 创建。";
+    ? t(`当前：${st.dsMasked}（${st.dsSource}）· 默认转写用它`, `Current: ${st.dsMasked} (${st.dsSource}) · used first`)
+    : t(`还没有设置 Key。到 ${console_} → API-KEY 创建。`, `No key yet. Create one at ${console_} → API Key.`);
   document.getElementById("keyHint-gemini").textContent = st.keyMasked
-    ? `当前：${st.keyMasked}（${st.keySource}）· 备用` : "还没有设置 Key。到 aistudio.google.com 免费申请。";
+    ? t(`当前：${st.keyMasked}（${st.keySource}）· 备用`, `Current: ${st.keyMasked} (${st.keySource}) · fallback`)
+    : t("还没有设置 Key。到 aistudio.google.com 免费申请。", "No key yet. Get one free at aistudio.google.com.");
+  document.getElementById("language").value = st.language || "auto";
+  document.getElementById("region").value = st.regionSetting || "auto";
   document.getElementById("key-qwen").value = "";
   document.getElementById("key-gemini").value = "";
   document.getElementById("trigger").textContent = st.trigger;
@@ -449,18 +515,19 @@ function renderSettings() {
   document.getElementById("vocab").value = st.vocab || "";
   const mic = document.getElementById("mic");
   const devs = st.devices.slice();
-  if (st.mic && !devs.some(d => d.toLowerCase().includes(st.mic.toLowerCase()))) devs.unshift(st.mic + "（未连接）");
+  const off = t("（未连接）", " (not connected)");
+  if (st.mic && !devs.some(d => d.toLowerCase().includes(st.mic.toLowerCase()))) devs.unshift(st.mic + off);
   mic.innerHTML = devs.map(d => {
     const selected = st.mic && d.toLowerCase().includes(st.mic.toLowerCase());
-    return `<option value="${esc(d.replace("（未连接）", ""))}" ${selected ? "selected" : ""}>${esc(d)}</option>`;
-  }).join("") || `<option value="">没有检测到麦克风</option>`;
+    return `<option value="${esc(d.replace(off, ""))}" ${selected ? "selected" : ""}>${esc(d)}</option>`;
+  }).join("") || `<option value="">${t("没有检测到麦克风", "No microphone found")}</option>`;
   renderModels();
 }
 function renderModels() {
   document.getElementById("models").innerHTML = models.map((m, i) => `
     <div class="m ${m.on ? "" : "off"}">
       <input type="checkbox" ${m.on ? "checked" : ""} onchange="models[${i}].on=this.checked;renderModels()">
-      <span class="name">${esc(m.name)}${(k => k ? ` <span class="mnote">${esc(k.provider)} · ${esc(k.note)}</span>` : "")((DATA.settings.knownModels || []).find(k => k.name === m.name))}</span>
+      <span class="name">${esc(m.name)}${(k => k ? ` <span class="mnote">${esc(k.provider)}${k.note ? " · " + esc(k.note) : ""}</span>` : "")((DATA.settings.knownModels || []).find(k => k.name === m.name))}</span>
       <button class="icon-btn" ${i === 0 ? "disabled" : ""} onclick="mv(${i},-1)">↑</button>
       <button class="icon-btn" ${i === models.length - 1 ? "disabled" : ""} onclick="mv(${i},1)">↓</button>
       <button class="icon-btn" onclick="models.splice(${i},1);renderModels()">✕</button>
@@ -474,16 +541,16 @@ function addModel() {
 }
 function toggleKey(p) {
   const k = document.getElementById("key-" + p), b = document.getElementById("keyEye-" + p);
-  k.type = k.type === "password" ? "text" : "password"; b.textContent = k.type === "password" ? "显示" : "隐藏";
+  k.type = k.type === "password" ? "text" : "password"; b.textContent = k.type === "password" ? t("显示", "Show") : t("隐藏", "Hide");
 }
 function testKey(p) {
   document.getElementById("testBtn-" + p).disabled = true;
-  document.getElementById("testMsg-" + p).innerHTML = `<span style="color:var(--ink-3)">测试中…</span>`;
+  document.getElementById("testMsg-" + p).innerHTML = `<span style="color:var(--ink-3)">${t("测试中…", "Testing…")}</span>`;
   send({ cmd: "testKey", provider: p, key: document.getElementById("key-" + p).value.trim() });
 }
 function save() {
   const enabled = models.filter(m => m.on).map(m => m.name);
-  if (!enabled.length) { document.getElementById("saveMsg").innerHTML = `<span class="err">至少保留一个模型</span>`; return; }
+  if (!enabled.length) { document.getElementById("saveMsg").innerHTML = `<span class="err">${t("至少保留一个模型", "Keep at least one model")}</span>`; return; }
   send({ cmd: "saveSettings", settings: {
     api_key: document.getElementById("key-gemini").value.trim(),
     dashscope_key: document.getElementById("key-qwen").value.trim(),
@@ -491,6 +558,8 @@ function save() {
     mic: document.getElementById("mic").value,
     keep: Math.max(3, Math.min(100, parseInt(document.getElementById("keep").value) || 10)),
     vocab: document.getElementById("vocab").value,
+    language: document.getElementById("language").value,
+    region: document.getElementById("region").value,
   }});
 }
 send({ cmd: "ready" });

@@ -19,6 +19,8 @@ require("hs.ipc") -- 让终端里的 `hs` 命令能连进来调试
 local ROOT = debug.getinfo(1, "S").source:match("^@(.*)/hammerspoon/[^/]+$") or "."
 package.path = ROOT .. "/hammerspoon/?.lua;" .. package.path
 local panel = require("voice_panel")
+local i18n = require("voice_i18n")
+local t = i18n.t
 -- 可选：隐藏 Hammerspoon 自己的锤子图标，菜单栏只留麦克风（Hammerspoon 只用来跑这个工具时）。
 -- 开启：在 Hammerspoon 控制台执行 hs.settings.set("voice.hideHammerspoonIcon", true)，再重载。
 -- 隐藏后要打开控制台：点菜单栏麦克风 →「Hammerspoon 控制台」。
@@ -29,17 +31,18 @@ local HISTORY = os.getenv("HOME") .. "/.local/state/voice-input/history.jsonl"
 -- 触发键可以在菜单栏麦克风 →「设置触发键…」里自己改，存在 hs.settings 里，重启也记得。
 -- 只支持单独的修饰键（Command/Option/Control/Shift/Fn），因为它们单独按下不会打出字符。
 local masks = hs.eventtap.event.rawFlagMasks
-local MODIFIER_KEYS = {
-  [54] = { "右 Command", masks.deviceRightCommand },
-  [55] = { "左 Command", masks.deviceLeftCommand },
-  [61] = { "右 Option", masks.deviceRightAlternate },
-  [58] = { "左 Option", masks.deviceLeftAlternate },
-  [62] = { "右 Control", masks.deviceRightControl },
-  [59] = { "左 Control", masks.deviceLeftControl },
-  [60] = { "右 Shift", masks.deviceRightShift },
-  [56] = { "左 Shift", masks.deviceLeftShift },
-  [63] = { "Fn", masks.secondaryFn },
+local MODIFIER_KEYS = { -- 键码 → { 中文名, 掩码, 英文名 }
+  [54] = { "右 Command", masks.deviceRightCommand, "Right Command" },
+  [55] = { "左 Command", masks.deviceLeftCommand, "Left Command" },
+  [61] = { "右 Option", masks.deviceRightAlternate, "Right Option" },
+  [58] = { "左 Option", masks.deviceLeftAlternate, "Left Option" },
+  [62] = { "右 Control", masks.deviceRightControl, "Right Control" },
+  [59] = { "左 Control", masks.deviceLeftControl, "Left Control" },
+  [60] = { "右 Shift", masks.deviceRightShift, "Right Shift" },
+  [56] = { "左 Shift", masks.deviceLeftShift, "Left Shift" },
+  [63] = { "Fn", masks.secondaryFn, "Fn" },
 }
+local function keyName(code) return t(MODIFIER_KEYS[code][1], MODIFIER_KEYS[code][3]) end
 local TRIGGER_KEY = hs.settings.get("voice.triggerKey") or 54
 if not MODIFIER_KEYS[TRIGGER_KEY] then TRIGGER_KEY = 54 end
 local capturing = false -- 正在等你按下新的触发键
@@ -217,7 +220,7 @@ chip[2] = { type = "circle", action = "stroke", strokeWidth = 2,               -
 chip[3] = { type = "arc", action = "stroke", arcRadii = false, strokeWidth = 2, strokeCapStyle = "round",
             strokeColor = AMBER, center = { x = 0, y = HUD_H / 2 }, radius = SPIN_R,
             startAngle = 0, endAngle = 110 }
-chip[4] = { type = "text", text = "转写中", textSize = 13, textColor = { white = 0.88 },
+chip[4] = { type = "text", text = t("转写中", "Transcribing"), textSize = 13, textColor = { white = 0.88 },
             frame = { x = 0, y = HUD_H / 2 - 9, w = 50, h = 20 } }
 chip[5] = { type = "circle", action = "fill", fillColor = AMBER, center = { x = 0, y = HUD_H / 2 }, radius = 9 }
 chip[6] = { type = "text", text = "1", textSize = 11.5, textColor = { red = 0.16, green = 0.12, blue = 0.04 },
@@ -255,7 +258,8 @@ local function updateChip(n)
     arrange()
     return
   end
-  local tw = math.ceil(hs.drawing.getTextDrawingSize("转写中", { size = 13 }).w) + 2
+  chip[4].text = t("转写中", "Transcribing") -- 语言可能在面板里改过
+  local tw = math.ceil(hs.drawing.getTextDrawingSize(chip[4].text, { size = 13 }).w) + 2
   local P = 14
   local sx = 8 + P + SPIN_R
   local tx = sx + SPIN_R + 9
@@ -393,21 +397,25 @@ end
 
 local function pasteTarget(winId)
   local win = frontWindow()
-  if not (win and winId and win:id() == winId) then return false, "窗口切换了" end
+  if not (win and winId and win:id() == winId) then return false, t("窗口切换了", "window changed") end
   local ok, role = pcall(function()
     local el = hs.axuielement.systemWideElement():attributeValue("AXFocusedUIElement")
     return el and el:attributeValue("AXRole")
   end)
-  if ok and role and NON_TEXT[role] then return false, "光标不在输入框里" end
+  if ok and role and NON_TEXT[role] then return false, t("光标不在输入框里", "cursor is not in a text field") end
   return true
 end
 
 local function run(args, callback)
-  local t = hs.task.new(SCRIPT, function(code, out, err)
+  local task = hs.task.new(SCRIPT, function(code, out, err)
     if callback then callback(code, out, err) end
   end, args)
-  t:start()
-  return t
+  -- 界面语言直接告诉脚本（它的报错会显示在浮窗上），省得它每次再查一遍系统语言
+  local env = task:environment()
+  env.VOICE_LANG = i18n.lang
+  task:setEnvironment(env)
+  task:start()
+  return task
 end
 
 ------------------------------------------------------------------------------
@@ -445,13 +453,13 @@ local function flushJobs()
       paste(j.text)
     else
       hs.pasteboard.setContents(oneLine(j.text))
-      notice("已复制 · " .. why .. "，按 ⌘V 粘贴", GRAY, 3.5)
+      notice(t("已复制 · " .. why .. "，按 ⌘V 粘贴", "Copied · " .. why .. ", press ⌘V to paste"), GRAY, 3.5)
     end
   elseif j.status == "done" then
-    notice("没有识别到内容")
+    notice(t("没有识别到内容", "No speech recognized"))
   elseif j.status == "failed" then
     sound("error")
-    notice(j.err .. " · 录音已保存，面板里可重新转写", RED, 4.5)
+    notice(j.err .. t(" · 录音已保存，面板里可重新转写", " · Recording saved; retry from the panel"), RED, 4.5)
   end
   -- 两次粘贴之间留出时间：paste() 借用剪贴板，0.8 秒后才还原
   delivering = true
@@ -469,7 +477,7 @@ local function startJob(args, winId)
   -- 超时保护：脚本自己有网络超时，这里再兜一层，任何情况下都不会一直"转写中"
   j.watchdog = hs.timer.doAfter(240, function()
     if j.task and j.task:isRunning() then j.task:terminate() end
-    if j.status == "running" then j.status, j.err = "failed", "转写超时" end
+    if j.status == "running" then j.status, j.err = "failed", t("转写超时", "Transcription timed out") end
     flushJobs()
   end)
   j.task = run(args, function(code, out, err)
@@ -479,8 +487,10 @@ local function startJob(args, winId)
     if code == 0 then
       j.status, j.text = "done", out or ""
     else
-      j.status, j.err = "failed", ((err or ""):gsub("voice%-input: [^\n]*换下一个模型\n", ""):gsub("^voice%-input: ", ""):gsub("%s+$", ""))
-      if j.err == "" then j.err = "转写失败" end
+      -- 中间"换下一个模型"的过程信息不显示，只留最后的结论
+      j.status, j.err = "failed", ((err or ""):gsub("voice%-input: [^\n]*换下一个模型\n", "")
+        :gsub("voice%-input: [^\n]*trying the next model\n", ""):gsub("^voice%-input: ", ""):gsub("%s+$", ""))
+      if j.err == "" then j.err = t("转写失败", "Transcription failed") end
     end
     if panel.isOpen() then panel.refresh() end
     flushJobs()
@@ -531,7 +541,7 @@ local function cancelRecording()
     state = "idle"
     setIcon()
     run({ "cancel" })
-    hudMessage("已取消 · 录音已保存在面板里")
+    hudMessage(t("已取消 · 录音已保存在面板里", "Cancelled · Recording saved in the panel"))
   end
 end
 
@@ -588,18 +598,18 @@ local tap = hs.eventtap.new(
   { hs.eventtap.event.types.flagsChanged, hs.eventtap.event.types.keyDown,
     hs.eventtap.event.types.scrollWheel },
   function(e)
-    local t = e:getType()
-    if t == hs.eventtap.event.types.scrollWheel then
+    local etype = e:getType()
+    if etype == hs.eventtap.event.types.scrollWheel then
       -- 按住触发键（右 Command）时滚轮会变成 ⌘+滚轮（缩放/切换），把 ⌘ 去掉，滚动照常
       if pressAt and (TRIGGER_KEY == 54 or TRIGGER_KEY == 55) then
         local f = e:getFlags(); f.cmd = nil; e:setFlags(f)
       end
       return false
     end
-    if t == hs.eventtap.event.types.keyDown then
+    if etype == hs.eventtap.event.types.keyDown then
       if capturing and e:getKeyCode() == ESC then
         capturing = false
-        hudMessage("已取消设置")
+        hudMessage(t("已取消设置", "Cancelled"))
         return true
       end
       -- 按住触发键后 0.8 秒内按了别的键，才算组合键（⌘C 这种都是一按下就按）。
@@ -632,7 +642,7 @@ local tap = hs.eventtap.new(
         capturing = false
         TRIGGER_KEY = code
         hs.settings.set("voice.triggerKey", code)
-        hudMessage("触发键已设为「" .. MODIFIER_KEYS[code][1] .. "」", RED, 2.5)
+        hudMessage(t("触发键已设为「" .. keyName(code) .. "」", "Trigger key set to " .. keyName(code)), RED, 2.5)
         panel.refresh()
       end
       return false
@@ -681,7 +691,8 @@ _G.voiceMouseTap = mouseTap
 local function toggleMouse()
   mouseOn = not mouseOn
   hs.settings.set("voice.mouseButtons", mouseOn)
-  hudMessage(mouseOn and "鼠标按键已开启 · 后键说话，前键回车，中键粘贴" or "鼠标按键已关闭，恢复后退/前进/中键")
+  hudMessage(mouseOn and t("鼠标按键已开启 · 后键说话，前键回车，中键粘贴", "Mouse buttons on · Back: talk, Forward: Return, Middle: paste")
+                     or t("鼠标按键已关闭，恢复后退/前进/中键", "Mouse buttons off · Back/Forward/Middle work as usual"))
 end
 -- 启动时清掉上次可能残留的录音进程（录到一半重载配置/重启 Hammerspoon 会留下）。
 run({ "cancel" })
@@ -706,7 +717,7 @@ local function recentMenu()
     if path then
       local stamp = path:match("(%d%d%d%d%d%d%d%d%-%d%d%d%d%d%d)%.wav$") or "?"
       local when = stamp:sub(5, 6) .. "-" .. stamp:sub(7, 8) .. " " .. stamp:sub(10, 11) .. ":" .. stamp:sub(12, 13)
-      local preview = (text ~= "" and text or "（未转写）")
+      local preview = (text ~= "" and text or t("（未转写）", "(not transcribed)"))
       if utf8.len(preview) and utf8.len(preview) > 28 then
         preview = preview:sub(1, utf8.offset(preview, 29) - 1) .. "…"
       end
@@ -714,9 +725,9 @@ local function recentMenu()
                             fn = function() transcribeWith("file", path) end })
     end
   end
-  if #items == 0 then items = { { title = "还没有录音", disabled = true } } end
+  if #items == 0 then items = { { title = t("还没有录音", "No recordings yet"), disabled = true } } end
   table.insert(items, { title = "-" })
-  table.insert(items, { title = "打开录音文件夹", fn = function()
+  table.insert(items, { title = t("打开录音文件夹", "Open Recordings Folder"), fn = function()
     hs.execute("mkdir -p ~/.local/state/voice-input/recordings && open ~/.local/state/voice-input/recordings")
   end })
   return items
@@ -744,13 +755,15 @@ local picker = hs.chooser.new(function(choice)
   hs.pasteboard.setContents(oneLine(choice.full))
   pasteTimers.press = hs.timer.doAfter(0.15, function() hs.eventtap.keyStroke({ "cmd" }, "v", 0) end)
 end)
-picker:placeholderText("最近的转写 · 输入筛选 · 回车粘贴（也会放进剪贴板）"):searchSubText(false):rows(9):width(40)
+picker:searchSubText(false):rows(9):width(40)
 local function showPicker()
+  picker:placeholderText(t("最近的转写 · 输入筛选 · 回车粘贴（也会放进剪贴板）",
+                           "Recent transcripts · Type to filter · Return to paste (also copied)"))
   local choices = {}
   for _, e in ipairs(recentTexts(40)) do
     local oneLine = e.text:gsub("%s+", " ")
     choices[#choices + 1] = { text = oneLine, full = e.text,
-                              subText = (e.at or ""):sub(6, 16) .. (e.dur and string.format(" · %d 秒", math.floor(e.dur + 0.5)) or "") }
+                              subText = (e.at or ""):sub(6, 16) .. (e.dur and string.format(t(" · %d 秒", " · %ds"), math.floor(e.dur + 0.5)) or "") }
   end
   picker:choices(choices)
   picker:query("")
@@ -772,27 +785,29 @@ _G.voice = { state = function() return state end, trigger = function() return TR
 local function startCapture()
   if state ~= "idle" then return end
   capturing = true
-  hudMessage("按一下想用的键（⌘ ⌥ ⌃ ⇧ Fn）· Esc 取消", GRAY, 8)
+  hudMessage(t("按一下想用的键（⌘ ⌥ ⌃ ⇧ Fn）· Esc 取消", "Press the key to use (⌘ ⌥ ⌃ ⇧ Fn) · Esc to cancel"), GRAY, 8)
 end
-panel.setup({ triggerName = function() return MODIFIER_KEYS[TRIGGER_KEY][1] end, startCapture = startCapture })
+panel.setup({ triggerName = function() return keyName(TRIGGER_KEY) end, startCapture = startCapture })
 -- 启动几秒后在后台把面板窗口建好（不显示），第一次打开就不用等 WebKit 冷启动
 _G.voicePanelPrewarm = hs.timer.doAfter(3, function() panel.prewarm() end)
 
 menu:setMenu(function()
   return {
-    { title = "按住「" .. MODIFIER_KEYS[TRIGGER_KEY][1] .. "」说话 / 轻点开始、再点结束", disabled = true },
-    { title = "打开面板（记录 · 统计 · 设置）", fn = panel.open },
+    { title = t("按住「" .. keyName(TRIGGER_KEY) .. "」说话 / 轻点开始、再点结束",
+                "Hold " .. keyName(TRIGGER_KEY) .. " to talk / tap to start, tap again to stop"), disabled = true },
+    { title = t("打开面板（记录 · 统计 · 设置）", "Open Panel (History · Stats · Settings)"), fn = panel.open },
     { title = "-" },
-    { title = "设置触发键…", fn = startCapture },
-    { title = "鼠标按键：后键说话、前键回车、中键粘贴", checked = mouseOn, fn = function() toggleMouse() end },
-    { title = "最近的转写（粘贴）  ⌃⌥V", fn = showPicker },
-    { title = "重新转写最近一段", fn = retry },
-    { title = "最近的录音", menu = recentMenu() },
-    { title = "打开转写历史", fn = function() hs.execute("open -t '" .. HISTORY .. "'") end },
+    { title = t("设置触发键…", "Set Trigger Key…"), fn = startCapture },
+    { title = t("鼠标按键：后键说话、前键回车、中键粘贴", "Mouse Buttons: Back to Talk, Forward for Return, Middle to Paste"),
+      checked = mouseOn, fn = function() toggleMouse() end },
+    { title = t("最近的转写（粘贴）  ⌃⌥V", "Recent Transcripts (Paste)  ⌃⌥V"), fn = showPicker },
+    { title = t("重新转写最近一段", "Retranscribe Last Recording"), fn = retry },
+    { title = t("最近的录音", "Recent Recordings"), menu = recentMenu() },
+    { title = t("打开转写历史", "Open Transcript History"), fn = function() hs.execute("open -t '" .. HISTORY .. "'") end },
     { title = "-" },
-    { title = "重新加载配置", fn = hs.reload },
-    { title = "Hammerspoon 控制台", fn = hs.openConsole },
+    { title = t("重新加载配置", "Reload Config"), fn = hs.reload },
+    { title = t("Hammerspoon 控制台", "Hammerspoon Console"), fn = hs.openConsole },
   }
 end)
 setIcon()
-hudMessage("语音输入已就绪 · 按住「" .. MODIFIER_KEYS[TRIGGER_KEY][1] .. "」说话")
+hudMessage(t("语音输入已就绪 · 按住「" .. keyName(TRIGGER_KEY) .. "」说话", "Voice input ready · Hold " .. keyName(TRIGGER_KEY) .. " to talk"))

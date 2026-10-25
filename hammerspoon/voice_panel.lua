@@ -5,6 +5,8 @@
 -- {cmd=...}，在 handle() 里处理。转写、测试 Key 这类慢操作都走 hs.task，异步回调。
 
 local M = {}
+local i18n = require("voice_i18n")
+local t = i18n.t
 
 local HOME = os.getenv("HOME")
 local HERE = debug.getinfo(1, "S").source:match("^@(.*)/[^/]+$") or "."
@@ -21,18 +23,47 @@ local QUOTA = HOME .. "/.local/state/voice-input/quota.json"
 local BILLING = HOME .. "/.local/state/voice-input/billing.json"
 local COOLDOWN = (os.getenv("TMPDIR") or "/tmp") .. "/voice-input/cooldown"
 local VOCAB = os.getenv("VOICE_VOCAB") or (CONFIG_DIR .. "/vocab.txt") -- 常用词表（可以软链到自己的 dotfiles）
-local DEFAULT_MODELS = { "qwen3-asr-flash-2025-09-08", "qwen3-asr-flash-2026-02-10", "fun-asr-flash-2026-06-15", "qwen3-asr-flash", "gemini-3-flash-preview", "gemini-2.5-flash", "local-qwen3-asr-1.7b" }
--- 设置页"可选模型"：没启用的也列出来，勾一下就能用。note 显示在模型名旁边
-local KNOWN_MODELS = {
-  { name = "qwen3-asr-flash-2025-09-08", provider = "阿里云百炼", note = "qwen3-asr-flash 现在指向的版本，单独 10 小时免费额度" },
-  { name = "qwen3-asr-flash-2026-02-10", provider = "阿里云百炼", note = "qwen3-asr-flash 的新快照，单独 10 小时免费额度" },
-  { name = "fun-asr-flash-2026-06-15", provider = "阿里云百炼", note = "另一个听写模型，单独 10 小时免费额度；中英文间不加空格" },
-  { name = "qwen3-asr-flash", provider = "阿里云百炼", note = "¥0.79/小时录音，国内直连，最快" },
-  { name = "gemini-3-flash-preview", provider = "Gemini", note = "免费额度，要走代理" },
-  { name = "gemini-2.5-flash", provider = "Gemini", note = "免费额度，要走代理" },
-  { name = "gemini-2.5-flash-lite", provider = "Gemini", note = "免费额度，效果差，容易加词" },
-  { name = "local-qwen3-asr-1.7b", provider = "本机", note = "免费、断网可用，准确度差一些，最后备用" },
+-- 阿里云百炼分国内站（cn，dashscope.aliyuncs.com）和国际站（intl，dashscope-intl.aliyuncs.com），
+-- 两边的账号、Key 不通用。config.json 的 region 没设时跟界面语言走：中文用国内站，英文用国际站。
+-- bin/voice-input 里是同一条规则。
+local function region(cfg)
+  if cfg.region == "cn" or cfg.region == "intl" then return cfg.region end
+  return i18n.lang == "zh" and "cn" or "intl"
+end
+-- 默认模型顺序：国内站先用几个日期快照各自的新人免费额度；这些快照国际站没有（没核实过），
+-- 国际站就只用主模型，没填阿里云 Key 时直接跳到 Gemini（没 Key 的模型不发请求，不耽误时间）。
+local DEFAULT_MODELS = {
+  cn = { "qwen3-asr-flash-2025-09-08", "qwen3-asr-flash-2026-02-10", "fun-asr-flash-2026-06-15", "qwen3-asr-flash", "gemini-3-flash-preview", "gemini-2.5-flash", "local-qwen3-asr-1.7b" },
+  intl = { "qwen3-asr-flash", "gemini-3-flash-preview", "gemini-2.5-flash", "local-qwen3-asr-1.7b" },
 }
+-- 设置页"可选模型"：没启用的也列出来，勾一下就能用。note 显示在模型名旁边；cnOnly 的国际站不列
+local KNOWN_MODELS = {
+  { name = "qwen3-asr-flash-2025-09-08", provider = { "阿里云百炼", "Alibaba Model Studio" }, cnOnly = true,
+    note = { "qwen3-asr-flash 现在指向的版本，单独 10 小时免费额度", "the version qwen3-asr-flash points to; its own 10-hour free quota" } },
+  { name = "qwen3-asr-flash-2026-02-10", provider = { "阿里云百炼", "Alibaba Model Studio" }, cnOnly = true,
+    note = { "qwen3-asr-flash 的新快照，单独 10 小时免费额度", "newer qwen3-asr-flash snapshot; its own 10-hour free quota" } },
+  { name = "fun-asr-flash-2026-06-15", provider = { "阿里云百炼", "Alibaba Model Studio" }, cnOnly = true,
+    note = { "另一个听写模型，单独 10 小时免费额度；中英文间不加空格", "another ASR model; its own 10-hour free quota" } },
+  { name = "qwen3-asr-flash", provider = { "阿里云百炼", "Alibaba Model Studio" },
+    note = { "¥0.79/小时录音，国内直连，最快", "¥0.79 per hour of audio, fastest" },
+    intlNote = { "国际站约 $0.13/小时录音，最快", "about $0.13 per hour of audio, fastest" } },
+  { name = "gemini-3-flash-preview", provider = { "Gemini", "Gemini" }, note = { "免费额度，要走代理", "free tier" } },
+  { name = "gemini-2.5-flash", provider = { "Gemini", "Gemini" }, note = { "免费额度，要走代理", "free tier" } },
+  { name = "gemini-2.5-flash-lite", provider = { "Gemini", "Gemini" },
+    note = { "免费额度，效果差，容易加词", "free tier; less accurate, tends to add words" } },
+  { name = "local-qwen3-asr-1.7b", provider = { "本机", "On-device" },
+    note = { "免费、断网可用，准确度差一些，最后备用", "free, works offline, less accurate; last resort" } },
+}
+local function knownModels(reg)
+  local out = {}
+  for _, k in ipairs(KNOWN_MODELS) do
+    if not (k.cnOnly and reg == "intl") then
+      local note = (reg == "intl" and k.intlNote) or k.note
+      table.insert(out, { name = k.name, provider = t(k.provider[1], k.provider[2]), note = t(note[1], note[2]) })
+    end
+  end
+  return out
+end
 
 local wv, hooks, playing = nil, {}, nil
 
@@ -125,7 +156,7 @@ local function buildItems(history)
   return items
 end
 
-local UNKNOWN = "未记录模型" -- 早期转写没存模型
+local UNKNOWN = "未记录模型" -- 早期转写没存模型。只当内部的键用，页面上显示时再翻译
 
 local function buildStats(history, settingsModels)
   local byDay, estimated, seen = {}, false, {}
@@ -170,13 +201,13 @@ local function buildStats(history, settingsModels)
     end
     if c.model and c.at and c.at:sub(1, 10) == today then
       seen[c.model] = true
-      local t = calls[c.model] or { calls = 0, ok = 0, limited = 0, failed = 0, cost = 0 }
-      t.calls = t.calls + 1
-      t.cost = t.cost + (tonumber(c.cost) or 0)
-      if c.code == 200 then t.ok = t.ok + 1
-      elseif c.code == 429 then t.limited = t.limited + 1
-      else t.failed = t.failed + 1 end
-      calls[c.model] = t
+      local row = calls[c.model] or { calls = 0, ok = 0, limited = 0, failed = 0, cost = 0 }
+      row.calls = row.calls + 1
+      row.cost = row.cost + (tonumber(c.cost) or 0)
+      if c.code == 200 then row.ok = row.ok + 1
+      elseif c.code == 429 then row.limited = row.limited + 1
+      else row.failed = row.failed + 1 end
+      calls[c.model] = row
     end
   end
   -- 真实扣费：只算语音输入自己调过的模型（calls.jsonl 里出现过的）
@@ -226,7 +257,7 @@ local function buildStats(history, settingsModels)
     table.insert(models, {
       name = m, unknown = (m == UNKNOWN), todayOk = todayOk,
       calls = c.calls, limited = c.limited, failed = c.failed,
-      limit = q and q.limit or nil, limitUnit = q and (perDay and "天" or (q.quotaId and q.quotaId:find("PerMinute") and "分钟") or "") or nil,
+      limit = q and q.limit or nil, limitUnit = q and (perDay and "day" or (q.quotaId and q.quotaId:find("PerMinute") and "minute") or "") or nil, -- 页面翻译
       -- 剩余是估算：上限减去今天记录到的非限额请求（Google 没有查询剩余额度的接口）
       remaining = (q and q.limit and perDay) and math.max(0, q.limit - (c.calls - c.limited)) or nil,
       cooling = cooling or false,
@@ -278,20 +309,24 @@ end
 
 local function buildSettings()
   local cfg = readConfig()
-  local key, source = cfg.api_key, "面板设置"
+  local key, source = cfg.api_key, t("面板设置", "set in panel")
   if not key or key == "" then
     key = readSecret("GEMINI_API_KEY", "GOOGLE_API_KEY")
-    source = "来自 ~/.secrets.zsh"
+    source = t("来自 ~/.secrets.zsh", "from ~/.secrets.zsh")
   end
-  local ds, dsSource = cfg.dashscope_key, "面板设置"
+  local ds, dsSource = cfg.dashscope_key, t("面板设置", "set in panel")
   if not ds or ds == "" then
     ds = readSecret("DASHSCOPE_API_KEY")
-    dsSource = "来自 ~/.secrets.zsh"
+    dsSource = t("来自 ~/.secrets.zsh", "from ~/.secrets.zsh")
   end
+  local reg = region(cfg)
   return {
+    lang = i18n.lang, language = (cfg.language == "zh" or cfg.language == "en") and cfg.language or "auto",
+    region = reg, regionSetting = (cfg.region == "cn" or cfg.region == "intl") and cfg.region or "auto",
+    currency = reg == "intl" and "$" or "¥", -- 国际站按美元计价，bin/voice-input 记的花费也是美元
     keyMasked = mask(key), keySource = source,
-    dsMasked = mask(ds), dsSource = dsSource, knownModels = KNOWN_MODELS,
-    models = (type(cfg.models) == "table" and #cfg.models > 0) and cfg.models or DEFAULT_MODELS,
+    dsMasked = mask(ds), dsSource = dsSource, knownModels = knownModels(reg),
+    models = (type(cfg.models) == "table" and #cfg.models > 0) and cfg.models or DEFAULT_MODELS[reg],
     mic = cfg.mic or "", keep = tonumber(cfg.keep) or 10,
     devices = devices, trigger = hooks.triggerName and hooks.triggerName() or "",
     vocab = (function()
@@ -319,13 +354,12 @@ function M.refresh()
 end
 
 local function runScript(args, env, cb)
-  local t = hs.task.new(SCRIPT, cb, args)
-  if env then
-    local e = t:environment()
-    for k, v in pairs(env) do e[k] = v end
-    t:setEnvironment(e)
-  end
-  t:start()
+  local task = hs.task.new(SCRIPT, cb, args)
+  local e = task:environment()
+  e.VOICE_LANG = i18n.lang -- 脚本的报错会显示在面板上
+  for k, v in pairs(env or {}) do e[k] = v end
+  task:setEnvironment(e)
+  task:start()
 end
 
 local function clean(err) return ((err or ""):gsub("^voice%-input: ", ""):gsub("%s+$", "")) end
@@ -351,7 +385,7 @@ local handlers = {
       if code == 0 and out ~= "" then
         call("onRetranscribed", m.id, { ok = true, text = out, model = m.model ~= "" and m.model or nil })
       else
-        call("onRetranscribed", m.id, { ok = false, err = code == 0 and "没有识别到内容" or clean(err) })
+        call("onRetranscribed", m.id, { ok = false, err = code == 0 and t("没有识别到内容", "No speech recognized") or clean(err) })
       end
     end)
   end,
@@ -373,13 +407,18 @@ local handlers = {
     if type(s.models) == "table" and #s.models > 0 then cfg.models = s.models end
     if s.mic and s.mic ~= "" then cfg.mic = s.mic end
     if tonumber(s.keep) then cfg.keep = math.floor(tonumber(s.keep)) end
+    -- "auto" 就是不写：以后系统语言变了跟着变
+    if s.language then cfg.language = (s.language == "zh" or s.language == "en") and s.language or nil end
+    if s.region then cfg.region = (s.region == "cn" or s.region == "intl") and s.region or nil end
     writeConfig(cfg)
+    i18n.reload()
+    if wv then wv:windowTitle(t("语音输入", "Voice Input")) end
     if type(s.vocab) == "string" and s.vocab ~= "" then
       local f = io.open(VOCAB, "w")
       if f then f:write((s.vocab:gsub("\r\n", "\n"))); f:close() end
     end
     M.refresh()
-    call("onSaved", "已保存")
+    call("onSaved", t("已保存", "Saved"))
   end,
   setTrigger = function()
     if hooks.startCapture then hooks.startCapture() end
@@ -411,7 +450,7 @@ local function create()
   wv = hs.webview.new({ x = f.x + (f.w - w) / 2, y = f.y + (f.h - hgt) / 2, w = w, h = hgt },
                       { developerExtrasEnabled = true }, uc)
   wv:windowStyle({ "titled", "closable", "resizable", "miniaturizable" })
-    :windowTitle("语音输入")
+    :windowTitle(t("语音输入", "Voice Input"))
     :allowTextEntry(true)       -- 设置页要能输入 Key
     :allowNewWindows(false)
     -- 关窗只是藏起来，不销毁：下次打开不用重新建 WebKit、加载页面，直接出来
