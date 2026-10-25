@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="420" viewBox="0 0 1000 420">
+  <!-- dev.to 封面（1000×420，平台按约 2.4:1 显示）。改完运行 docs/promo/img/render.py 重新生成 PNG。 -->
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#8E8E93"/>
+    </marker>
+    <marker id="o" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#D97757"/>
+    </marker>
+  </defs>
+  <style>
+    text { font-family: -apple-system, "Helvetica Neue", sans-serif; fill: #1D1D1F; }
+    .title { font-size: 40px; font-weight: 700; }
+    .sub { font-size: 21px; fill: #6E6E73; }
+    .pill { fill: #FFFFFF; stroke: #D9D9DE; stroke-width: 1.5; }
+    .pt { font-size: 18px; font-weight: 600; text-anchor: middle; }
+    .num { font-size: 13px; font-weight: 700; fill: #fff; text-anchor: middle; }
+    .loop { font-size: 16px; font-weight: 600; fill: #B4532F; text-anchor: middle; }
+  </style>
+  <rect width="1000" height="420" fill="#FAFAF7"/>
+  <text x="50" y="92" class="title">Dictation that writes down exactly what you said</text>
+  <text x="50" y="132" class="sub">Push-to-talk for macOS, built for talking to Claude Code · open source</text>
+
+  <g>
+    <rect x="50" y="200" width="125" height="60" rx="30" class="pill"/><circle cx="76" cy="230" r="11" fill="#D97757"/><text x="76" y="234.5" class="num">1</text><text x="124" y="236" class="pt">Speak</text>
+    <rect x="200" y="200" width="125" height="60" rx="30" class="pill"/><circle cx="226" cy="230" r="11" fill="#D97757"/><text x="226" y="234.5" class="num">2</text><text x="274" y="236" class="pt">Record</text>
+    <rect x="350" y="200" width="150" height="60" rx="30" class="pill"/><circle cx="376" cy="230" r="11" fill="#D97757"/><text x="376" y="234.5" class="num">3</text><text x="436" y="236" class="pt">Transcribe</text>
+    <rect x="525" y="200" width="150" height="60" rx="30" class="pill"/><circle cx="551" cy="230" r="11" fill="#D97757"/><text x="551" y="234.5" class="num">4</text><text x="611" y="236" class="pt">Proofread</text>
+    <rect x="700" y="200" width="115" height="60" rx="30" class="pill"/><circle cx="726" cy="230" r="11" fill="#D97757"/><text x="726" y="234.5" class="num">5</text><text x="768" y="236" class="pt">Rules</text>
+    <rect x="840" y="200" width="115" height="60" rx="30" class="pill"/><circle cx="866" cy="230" r="11" fill="#D97757"/><text x="866" y="234.5" class="num">6</text><text x="908" y="236" class="pt">Paste</text>
+    <path d="M175,230 L196,230" stroke="#8E8E93" stroke-width="2.5" marker-end="url(#a)"/>
+    <path d="M325,230 L346,230" stroke="#8E8E93" stroke-width="2.5" marker-end="url(#a)"/>
+    <path d="M500,230 L521,230" stroke="#8E8E93" stroke-width="2.5" marker-end="url(#a)"/>
+    <path d="M675,230 L696,230" stroke="#8E8E93" stroke-width="2.5" marker-end="url(#a)"/>
+    <path d="M815,230 L836,230" stroke="#8E8E93" stroke-width="2.5" marker-end="url(#a)"/>
+  </g>
+  <!-- 回路：文字进了 Claude Code，听错的词回到词表 -->
+  <path d="M897,262 C897,350 760,350 760,350 L436,350 C436,350 425,350 425,280 L425,266" stroke="#D97757" stroke-width="2.5" fill="none" marker-end="url(#o)"/>
+  <text x="660" y="378" class="loop">Claude Code spots misheard words and adds them to the vocabulary</text>
+</svg>
