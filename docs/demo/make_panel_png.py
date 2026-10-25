@@ -35,15 +35,23 @@ inject = ("<style>.tip{transition:none}</style><script>try{app.render(%s)}catch(
           "setTimeout(()=>{document.querySelector('[data-tab=stats]').click();"
           "const cols=document.querySelectorAll('#chart .col');cols[cols.length-1].onmouseenter();},300)</script></body>"
           % json.dumps(data, ensure_ascii=False))
+# Chrome：用一个固定的配置目录，不每次新建 —— 全新的配置目录会让 Chrome 在后台下载本地 AI 模型（几个 GB）；
+# 起之前确认管这件事的策略在。只杀用这个目录的那个 Chrome。
+if subprocess.run(["defaults", "read", "com.google.Chrome", "GenAILocalFoundationalModelSettings"],
+                  capture_output=True, text=True).stdout.strip() != "1":
+    raise SystemExit("先设 Chrome 策略：defaults write com.google.Chrome GenAILocalFoundationalModelSettings -int 1")
+PROFILE = os.path.join(os.environ.get("TMPDIR", "/tmp"), "claude-tmux-render-chrome")
+os.makedirs(PROFILE, exist_ok=True)
+subprocess.run(["pkill", "-f", "--", f"--user-data-dir={PROFILE}"], capture_output=True)
 page = os.path.join(tempfile.mkdtemp(), "panel.html")
 open(page, "w", encoding="utf-8").write(html.replace("</body>", inject, 1))
 out = os.path.join(ROOT, "docs/panel.png")
 if "--dom" in __import__("sys").argv:  # 排查用：打印渲染后的 DOM（出错时 <title> 里是报错）
-    subprocess.run(["/Applications/Google Chrome.app/Contents/MacOS/Google Chrome", "--headless=new", "--disable-gpu",
+    subprocess.run(["/Applications/Google Chrome.app/Contents/MacOS/Google Chrome", "--headless=new", "--disable-gpu", f"--user-data-dir={PROFILE}",
                     "--virtual-time-budget=2000", "--dump-dom", "file://" + page], stderr=subprocess.DEVNULL)
     raise SystemExit
-subprocess.run(["/Applications/Google Chrome.app/Contents/MacOS/Google Chrome", "--headless=new", "--disable-gpu",
-                "--hide-scrollbars", "--force-device-scale-factor=2", "--window-size=900,640",
+subprocess.run(["/Applications/Google Chrome.app/Contents/MacOS/Google Chrome", "--headless=new", "--disable-gpu", f"--user-data-dir={PROFILE}",
+                "--hide-scrollbars", "--force-dark-mode", "--force-device-scale-factor=2", "--window-size=900,640",
                 "--virtual-time-budget=2000", f"--screenshot={out}", "file://" + page],
                check=True, stderr=subprocess.DEVNULL)
 print(out)
