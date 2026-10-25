@@ -512,7 +512,10 @@ transcribe() {  # transcribe <音频文件> [指定模型]
       000) print -u2 -- "voice-input: $model 连不上，换下一个模型" ;;
       local) print -u2 -- "voice-input: $last_err" ;;
       *) last_err="$model 返回 HTTP $code：$(jq -r '.error.message // .message // empty' "$resp" 2>/dev/null || head -c 200 "$resp")"
-         print -u2 -- "voice-input: $last_err，换下一个模型" ;;
+         print -u2 -- "voice-input: $last_err，换下一个模型"
+         # 模型不存在（下线了，或者这个站点没有）：同样一天内不再试。两个 qwen3-asr-flash 日期快照
+         # 2026-10-13 起在国内站一直返回 404 "Model not exist."，每段转写都要白发两次请求才轮到下一个。
+         [[ $code == 404 ]] && grep -q 'Model not exist' "$resp" 2>/dev/null && print -- $(( now + 86400 )) >"$cool/$model" ;;
     esac
   done
   [[ $code == 200 ]] || die "${last_err:-转写失败}"
