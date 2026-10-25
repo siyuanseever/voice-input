@@ -34,11 +34,12 @@ fix punctuation, fix the spelling of terms. If the proofread text is much longer
 it is thrown away and the raw transcript is used. A plain-text vocabulary file adds terms to the prompt
 and `wrong => right` rules for what still slips through.
 
-If one model is rate-limited or down it falls through to the next, and finally to an on-device
+If one model is rate-limited or down it falls through to the next, and finally (optionally) to an on-device
 Qwen3-ASR-1.7B (MLX) so it works offline. Recordings are kept, so a failed clip can be re-transcribed.
+Audio goes only to the providers you configure; with just the on-device model it never leaves the machine.
 
 I've used it for a month: 1872 clips, about 13 hours of audio. At list price that is under $2; my actual bill
-was zero because of new-account free quota. It's Hammerspoon plus a zsh script, about 2,000 lines, MIT.
+was zero because of new-account free quota. It's Hammerspoon plus a zsh script, about 2,600 lines, MIT.
 I speak mostly Chinese mixed with English, so mixed-language speech is the case I tested hardest;
 the UI now follows your macOS language and the English prompts never translate.
 
