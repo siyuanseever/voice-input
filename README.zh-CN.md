@@ -37,6 +37,10 @@
   （默认顺序里还有 `qwen3-asr-flash` 的两个日期版本，2026-10-13 起国内站返回 404「模型不存在」，会自动跳过。）
 - **中英文界面**：跟系统语言走，面板「设置」里能改。阿里云国内站、国际站的 Key 都能用，「站点」选自动时会自己认出 Key 是哪个站点的。
 
+## 怎么工作的
+
+<p align="center"><img src="docs/promo/img/architecture.zh.png" alt="一段话从按键到出字的 6 步：说话、录音、听写（阿里云 → Gemini → 本机）、qwen-plus 校对、词表兜底、粘贴到光标处" width="900"></p>
+
 ## 用起来是什么样
 
 <p align="center"><img src="docs/hud.png" alt="屏幕底部的浮窗：正在录音 1 秒、实时音量波形，旁边显示还有 2 段在转写" width="420"></p>

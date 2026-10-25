@@ -41,6 +41,10 @@ question you were dictating to the agent, and the good ones are monthly subscrip
 - **English or Chinese UI**, following your macOS language (changeable in Settings).
   Mixed-language speech stays mixed.
 
+## How it works
+
+<p align="center"><img src="docs/promo/img/architecture.en.png" alt="Six steps from key press to text: speak, record, transcribe (Alibaba Cloud, then Gemini, then on-device), proofread with qwen-plus under strict rules, apply vocabulary rules, paste at the cursor" width="900"></p>
+
 ## Using it
 
 <p align="center"><img src="docs/hud.png" alt="The HUD at the bottom of the screen: recording for 1 second with a live level meter, and a chip saying two earlier clips are still transcribing" width="420"></p>
