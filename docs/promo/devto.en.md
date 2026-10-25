@@ -1,11 +1,13 @@
 ---
 title: I dictate almost every prompt to Claude Code now. This Mac tool writes down exactly what I said
-published: false
+published: true
 tags: claude, productivity, opensource, macos
 cover_image: https://raw.githubusercontent.com/siyuanseever/voice-input/main/docs/promo/img/architecture.en.png
 ---
 
-<!-- Draft for dev.to (account threedaycat, same as claude-tmux-sessions). Not posted yet.
+<!-- Published on dev.to 2026-10-25 22:42 (+08:00), account threedaycat:
+     https://dev.to/threedaycat/i-dictate-almost-every-prompt-to-claude-code-now-this-mac-tool-writes-down-exactly-what-i-said-47ag
+     Cover = docs/promo/img/devto-cover.en.png; AI disclosure "Some AI (AI-assisted)"; body pasted with hard line breaks joined.
      Paste the body with hard line breaks as written (dev.to renders Markdown). Images point at the repo's main branch.
      Numbers: counted 2026-10-25 from ~/.local/state/voice-input/ and the git log of ~/dotfiles/voice/vocab.txt.
      The English example below is a synthetic clip made with macOS `say` and run through the tool on 2026-10-25. -->
