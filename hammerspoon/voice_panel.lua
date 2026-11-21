@@ -33,15 +33,11 @@ end
 -- 默认模型顺序：国内站先用几个日期快照各自的新人免费额度；这些快照国际站没有（没核实过），
 -- 国际站就只用主模型，没填阿里云 Key 时直接跳到 Gemini（没 Key 的模型不发请求，不耽误时间）。
 local DEFAULT_MODELS = {
-  cn = { "qwen3-asr-flash-2025-09-08", "qwen3-asr-flash-2026-02-10", "fun-asr-flash-2026-06-15", "qwen3-asr-flash", "gemini-3-flash-preview", "gemini-2.5-flash", "local-qwen3-asr-1.7b" },
+  cn = { "fun-asr-flash-2026-06-15", "qwen3-asr-flash", "gemini-3-flash-preview", "gemini-2.5-flash", "local-qwen3-asr-1.7b" },
   intl = { "qwen3-asr-flash", "gemini-3-flash-preview", "gemini-2.5-flash", "local-qwen3-asr-1.7b" },
 }
 -- 设置页"可选模型"：没启用的也列出来，勾一下就能用。note 显示在模型名旁边；cnOnly 的国际站不列
 local KNOWN_MODELS = {
-  { name = "qwen3-asr-flash-2025-09-08", provider = { "阿里云百炼", "Alibaba Model Studio" }, cnOnly = true,
-    note = { "qwen3-asr-flash 现在指向的版本，单独 10 小时免费额度", "the version qwen3-asr-flash points to; its own 10-hour free quota" } },
-  { name = "qwen3-asr-flash-2026-02-10", provider = { "阿里云百炼", "Alibaba Model Studio" }, cnOnly = true,
-    note = { "qwen3-asr-flash 的新快照，单独 10 小时免费额度", "newer qwen3-asr-flash snapshot; its own 10-hour free quota" } },
   { name = "fun-asr-flash-2026-06-15", provider = { "阿里云百炼", "Alibaba Model Studio" }, cnOnly = true,
     note = { "另一个听写模型，单独 10 小时免费额度；中英文间不加空格", "another ASR model; its own 10-hour free quota" } },
   { name = "qwen3-asr-flash", provider = { "阿里云百炼", "Alibaba Model Studio" },
